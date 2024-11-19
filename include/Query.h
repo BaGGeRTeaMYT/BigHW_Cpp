@@ -34,7 +34,11 @@ class OperationInsert: public Operation {
 
     private:
     std::string table_name;
-    std::vector<Column> values;
+    std::vector<std::vector<std::string>> col_attributes;
+    std::vector<std::string> col_name;
+    std::vector<std::string> col_type;
+    std::vector<int> col_sizeof;
+    std::vector<std::string> col_default_value;
 };
 
 class OperationSelect: public Operation { // select <columns> from <table> where <condition>
@@ -46,17 +50,6 @@ class OperationSelect: public Operation { // select <columns> from <table> where
     std::vector<std::string> column_names;
     Table table;
     // some type Condition (may be lambda)    
-};
-
-class OperationSelect: public Operation { // select <columns> from <table> where <condition>
-    public:
-    OperationSelect(const std::string& args);
-    Table execute() override;
-
-    private:
-    std::vector<std::string> column_names;
-    Table table;
-    // Condition (may be lambda)    
 };
 
 class OperationUpdate : public Operation {

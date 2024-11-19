@@ -1,6 +1,8 @@
 #include <iostream>
+#include <Query.h>
 
 int main() {
-    std::cout << "Test string \"ugabuga\"" << std::endl;
+    // should begin with create table
+    OperationCreate tst = OperationCreate(std::string("table_name ({attr1, attr2,attr3}  col1 : int32 = 31, {attr2,attr3}  col2: bytes[12] = 0x1234 )"));
     return 0;
 }

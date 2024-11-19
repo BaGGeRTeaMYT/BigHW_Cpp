@@ -7,22 +7,21 @@
 #include <iostream>
 #include <Cell.h>
 
-template <class T>
 class Column {
 public:
 
     Column( std::string );
 
-    void add_cell( int position, std::shared_ptr<Cell<T>> cell);
+    void add_cell( int position, std::shared_ptr<Cell> cell);
     void remove_cell( int position );
 
-    [[nodiscard]] std::shared_ptr<Cell<T>>& get_cell( int position ) const;
-    [[nodiscard, noexcept]] std::vector< std::shared_ptr<Cell<T>> >& get_all_cells( void ) const;
+    [[nodiscard]] std::shared_ptr<Cell>& get_cell( int position );
+    [[nodiscard, noexcept]] std::vector< std::shared_ptr<Cell> >& get_all_cells( void );
 
 private:
 
     std::string m_name;
-    std::vector< std::shared_ptr<Cell<T>> > m_cells;
+    std::vector< std::shared_ptr<Cell> > m_cells;
 
 };
 

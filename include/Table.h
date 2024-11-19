@@ -13,7 +13,8 @@ public:
 
     void add_column( int position, std::shared_ptr<Column> column );
     void remove_column( int position );
-    std::shared_ptr<Column> get_column( std::string column_name );
+
+    std::shared_ptr<Column> get_column( const std::string& column_name );
 
 private:
 

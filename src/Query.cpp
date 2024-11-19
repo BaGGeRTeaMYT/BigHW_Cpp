@@ -1,7 +1,13 @@
 #include <Query.h>
 
+void remove_extra_spaces(std::string& str) {
+    while (str.back() == ' ') {
+        str.pop_back();
+    }
+}
+
 inline void skip_spaces(const std::string& str, size_t& from) {
-    while (from < str.size() && !isspace(str[from])) {
+    while (from < str.size() && isspace(str[from])) {
         from++;
     }
 }
@@ -17,6 +23,7 @@ std::string read_until(const std::string& str, size_t& from) {
 
     if (from == str.size()) {
         std::cout << "read_until: Symbol \'" << end_sym << "\' not found" << std::endl;
+        throw std::runtime_error("Read until: error");
     }
 
     if constexpr (save_pos) {
@@ -25,11 +32,12 @@ std::string read_until(const std::string& str, size_t& from) {
     return answer;
 }
 
+// @brief Reads everything before space symbol or ',' symbol
 template <bool save_pos = false>
 std::string get_word(const std::string& str, size_t& from) {
     std::string answer = "";
     size_t save_from = from;
-    for (from; from < str.size() && !isspace(str[from]) && str[from] != ','; from++) {
+    for (from; from < str.size() && !isspace(str[from]) && str[from] != ',' && str[from] != '}' && str[from] != ')'; from++) {
         answer += str[from];
     }
     if constexpr (save_pos) {
@@ -48,6 +56,7 @@ OperationCreate::OperationCreate(const std::string& args) {
                   << "Arguments are missing." << std::endl;
         // TODO throw some error with this cute (:3 OwO UwU) msg
     }
+    std::cout << "Parsing args: {" << args << "}" << std::endl;
     std::string tmp;
     bool name_found = false;
     size_t idx = 0;
@@ -60,6 +69,7 @@ OperationCreate::OperationCreate(const std::string& args) {
     if (idx != args.size()) { // has arguments
         idx++;
         while (idx < args.size() && args[idx] != ')') {
+            skip_spaces(args, idx);
             if (args[idx] == '{') { // attributes list
                 std::vector<std::string> attributes;
                 idx++;
@@ -76,6 +86,7 @@ OperationCreate::OperationCreate(const std::string& args) {
             }
             skip_spaces(args, idx);
             std::string name = read_until<':'>(args, idx);
+            remove_extra_spaces(name);
             col_name.push_back(name);
             idx++;
 
@@ -153,19 +164,54 @@ OperationCreate::OperationCreate(const std::string& args) {
                     std::cout << "CREATE TABLE: string type requires size specification." << std::endl
                               << "e.g. string[10] or string[10203]" << std::endl;
                 }
-                skip_spaces(args, idx);
-                if (args[idx] == ',') {
-                    idx++;
-                }
+                
 
             } else { // error
                 std::cout << "CREATE TABLE: unable to recognize given column value type." << std::endl
                           << "Possible variants: int32, bool, string[X], bytes[X]" << std::endl;
             }
+            skip_spaces(args, idx);
+            if (args[idx] == '=') {
+                idx++;
+                skip_spaces(args, idx);
+                // Update defaults for STRING
+                // Should read inside " "
+                col_default_value.push_back(get_word(args, idx));
 
+            } else {
+                col_default_value.push_back("");
+            }
+            skip_spaces(args, idx);
+            if (args[idx] == ',') {
+                idx++;
+            }
         }
         std::cout << "Log: table " << table_name << " ready to be created" << std::endl;
+        for (size_t i = 0; i < col_type.size(); i++) {
+            std::cout << i << ": {";
+            size_t cnt = 0;
+            for (const auto& j : col_attributes[i]) {
+                std::cout << j;
+                if (col_attributes[i].begin() + cnt != col_attributes[i].end() - 1) {
+                    std::cout << ", ";
+                }
+                cnt++;
+            } 
+            std::cout << "} " << col_name[i] << ": " << col_type[i];
+            if (col_type[i] == "string" || col_type[i] == "bytes") {
+                std::cout << "[" << col_sizeof[i] << "]";
+            }
+            if (col_default_value[i].size()) {
+                std::cout << " = " << col_default_value[i];
+            }
+            std::cout << std::endl;
+        }
     } else {
         std::cout << "Log: empty table " << table_name << " ready to be created" << std::endl;
     }
+}
+
+Table OperationCreate::execute() {
+    Table a;
+    return a;
 }
