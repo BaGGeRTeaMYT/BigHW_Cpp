@@ -12,6 +12,7 @@ inline void skip_spaces(const std::string& str, size_t& from) {
     }
 }
 
+
 template<char end_sym, bool save_pos = false>
 std::string read_until(const std::string& str, size_t& from) {
     size_t from_save = from;
@@ -23,7 +24,7 @@ std::string read_until(const std::string& str, size_t& from) {
 
     if (from == str.size()) {
         std::cout << "read_until: Symbol \'" << end_sym << "\' not found" << std::endl;
-        throw std::runtime_error("Read until: error");
+        throw std::runtime_error("Read until error: end symbol not found.");
     }
 
     if constexpr (save_pos) {
@@ -37,8 +38,12 @@ template <bool save_pos = false>
 std::string get_word(const std::string& str, size_t& from) {
     std::string answer = "";
     size_t save_from = from;
-    for (from; from < str.size() && !isspace(str[from]) && str[from] != ',' && str[from] != '}' && str[from] != ')'; from++) {
+    for (from; from < str.size() && !isspace(str[from]) && str[from] != ',' && str[from] != '}' && str[from] != ')' && str[from] !=';'; from++) {
         answer += str[from];
+    }
+    if (from == str.size()) {
+        std::cout << "get_word: word is the end of the string" << std::endl;
+        throw std::runtime_error("Get word: error");
     }
     if constexpr (save_pos) {
         from = save_from;
@@ -46,172 +51,389 @@ std::string get_word(const std::string& str, size_t& from) {
     return answer;
 }
 
-OperationCreate::OperationCreate(const std::string& args) {
-    if (args.size() == 0) {
-        std::cout << "Operation error:" << std::endl
-                  << "CREATE TABLE <name> (column params);" << std::endl
-                  << "(column params) sohould look exactly like this:" << std::endl
-                  << "[{attribute1, attribute2,...}] <name>: <type> [ = <value>]" << std::endl
-                  << "[...] for optional params" << std::endl
-                  << "Arguments are missing." << std::endl;
-        // TODO throw some error with this cute (:3 OwO UwU) msg
+bool check_command(std::string& word) {
+    std::string l_word = to_lower_copy(word);
+    if (   l_word == "create" || l_word == "insert"
+        || l_word == "select" || l_word == "update"
+        || l_word == "delete") {
+        return true;
     }
-    std::cout << "Parsing args: {" << args << "}" << std::endl;
-    std::string tmp;
-    bool name_found = false;
-    size_t idx = 0;
-    skip_spaces(args, idx);
-    table_name = read_until<' '>(args, idx); // TODO check if name is unique
-    if (table_name[0] == '(') {
-        std::cout << "CREATE TABLE: name is missing" << std::endl;
-    }
-    skip_spaces(args, idx);
-    if (idx != args.size()) { // has arguments
-        idx++;
-        while (idx < args.size() && args[idx] != ')') {
-            skip_spaces(args, idx);
-            if (args[idx] == '{') { // attributes list
-                std::vector<std::string> attributes;
-                idx++;
-                for (; args[idx] != '}';) {
-                    skip_spaces(args, idx);
-                    attributes.push_back( get_word(args, idx) );
-                    skip_spaces(args, idx);
-                    if (args[idx] == ',') {
-                        idx++;
-                    }
-                }
-                col_attributes.push_back(attributes);
-                idx++;
-            }
-            skip_spaces(args, idx);
-            std::string name = read_until<':'>(args, idx);
-            remove_extra_spaces(name);
-            col_name.push_back(name);
-            idx++;
+    return false;
+}
 
-            skip_spaces(args, idx);
-            std::string type;
-            if (args[idx] == 'i') {
-                type = read_until<'2'>(args, idx);
-                idx++;
-                type += "2";
-                if (type != "int32") {
-                    std::cout << "CREATE TABLE: " << type << " is not valid type name. May be you meant int32?" << std::endl;
-                }
-                col_type.push_back(type);
-                col_sizeof.push_back(-1);
-            } else if (args[idx] == 'b') { // bool or bytes
-
-                if (idx == args.size() - 1) {
-                    // nothing after b
-                    std::cout << "CREATE TABLE: missing bracket, closing attribute params" << std::endl;
-                
-                } else if (args[idx + 1] == 'o') { // bool
-                    type = read_until<'l'>(args, idx);
-                    idx++;
-                    type += "l";
-                    if (type != "bool") {
-                        std::cout << "CREATE TABLE: " << type << " is not valid type name. May be you meant bool?" << std::endl;
-                    }
-                    col_type.push_back(type);
-                    col_sizeof.push_back(-1);
-
-                } else if (args[idx + 1] == 'y') { // bytes
-                    type = read_until<'s'>(args, idx);
-                    idx++;
-                    if (idx == args.size()) {
-                        std::cout << "CREATE TABLE: missing bracket, closing attribute params" << std::endl;
-                    }
-                    type += "s";
-                    if (type != "bytes") {
-                        std::cout << "CREATE TABLE: " << type << " is not valid type name. May be you meant bytes[X]?" << std::endl;
-                    }
-                    col_type.push_back(type);
-                    skip_spaces(args, idx);
-                    if (args[idx] == '[') {
-                        idx++;
-                        std::string size_spec = read_until<']'>(args, idx);
-
-                        col_sizeof.push_back(std::stoi(size_spec));
-                        idx++;
-
-                    } else {
-                        std::cout << "CREATE TABLE: bytes type requires size specification." << std::endl
-                                  << "e.g. bytes[1] or bytes[12345]" << std::endl;
-                    }
-                }
-
-            } else if (args[idx] == 's') { // string
-                type = read_until<'g'>(args, idx);
-                idx++;
-                if (idx == args.size()) {
-                    std::cout << "CREATE TABLE: missing bracket, closing attribute params" << std::endl;
-                }
-                type += "g";
-                if (type != "string") {
-                    std::cout << "CREATE TABLE: " << type << " is not valid type name. May be you meant string[X]?" << std::endl;
-                }
-                col_type.push_back(type);
-                skip_spaces(args, idx);
-                if (args[idx] == '[') {
-                    idx++;
-                    std::string size_spec = read_until<']'>(args, idx);
-                    // TODO check if there is actually number inside []
-                    col_sizeof.push_back(std::stoi(size_spec));
-                    idx++;
+std::vector<std::pair<std::vector<std::vector<std::string>>, char>> get_keywords(const std::string& str, size_t& idx) {
+    std::vector<std::pair<std::vector<std::vector<std::string>>, char>> answer;
+    std::vector<std::vector<std::string>> params;
+    while (idx < str.size()) {
+        // read operation
+        skip_spaces(str, idx);
+        std::vector<std::string> single_type_params();
+        std::string tmp = get_word(str, idx);
+        char operation_type = -1;
+        skip_spaces(str, idx);
+        if (check_command(tmp)) {
+            to_lower(tmp);
+            if (tmp == "create") {
+                std::string second_word = get_word(str, idx);
+                to_lower(second_word);
+                if (second_word == "table") {
+                    operation_type = OP_TYPE::CREATE_TABLE;
+                } else if (second_word == "index") {
+                    operation_type = OP_TYPE::CREATE_INDEX;
                 } else {
-                    std::cout << "CREATE TABLE: string type requires size specification." << std::endl
-                              << "e.g. string[10] or string[10203]" << std::endl;
+                    std::cout << "Query creation error." << std::endl
+                              << "Unable to recognize operation " << tmp + " " + second_word << std::endl;
+                    throw std::runtime_error("Query compilation error.");
                 }
-                
-
-            } else { // error
-                std::cout << "CREATE TABLE: unable to recognize given column value type." << std::endl
-                          << "Possible variants: int32, bool, string[X], bytes[X]" << std::endl;
             }
-            skip_spaces(args, idx);
-            if (args[idx] == '=') {
-                idx++;
-                skip_spaces(args, idx);
-                // Update defaults for STRING
-                // Should read inside " "
-                col_default_value.push_back(get_word(args, idx));
-
+            if (tmp[0] == 'i') {
+                operation_type = OP_TYPE::INSERT;
+            } else if (tmp[0] == 's') {
+                operation_type = OP_TYPE::SELECT;
+            } else if (tmp[0] == 'u') {
+                operation_type = OP_TYPE::UPDATE;
+            } else if (tmp[0] == 'd') {
+                operation_type = OP_TYPE::DELETE;
+            }
+        } else {
+            std::string possible_join = get_word(str, idx);
+            skip_spaces(str, idx);
+            if (to_lower_copy(possible_join) == "join") {
+                single_type_params.push_back(tmp); // first table name
+                operation_type = OP_TYPE::JOIN;
             } else {
-                col_default_value.push_back("");
-            }
-            skip_spaces(args, idx);
-            if (args[idx] == ',') {
-                idx++;
+                std::cout << "Query creation error." << std::endl
+                          << "Unable to recognize operation " << tmp << std::endl;
+                throw std::runtime_error("Query compilation error.");
             }
         }
-        std::cout << "Log: table " << table_name << " ready to be created" << std::endl;
-        for (size_t i = 0; i < col_type.size(); i++) {
-            std::cout << i << ": {";
-            size_t cnt = 0;
-            for (const auto& j : col_attributes[i]) {
-                std::cout << j;
-                if (col_attributes[i].begin() + cnt != col_attributes[i].end() - 1) {
-                    std::cout << ", ";
-                }
-                cnt++;
-            } 
-            std::cout << "} " << col_name[i] << ": " << col_type[i];
-            if (col_type[i] == "string" || col_type[i] == "bytes") {
-                std::cout << "[" << col_sizeof[i] << "]";
+        // now we know what operation this is
+        // operation must end with ';'
+        // last operation in query may not to end with ';'
+        while (idx < str.size() && str[idx] != ';') {
+            switch (operation_type) {
+
+                case CREATE_TABLE:
+                    // read table name
+                    single_type_params.push_back(get_word(str, idx));
+                    skip_spaces(str, idx);
+                    params.push_back(single_type_params);
+                    single_type_params.clear();
+                    // there would be vector of vectors for every column
+                    if (str[idx] == '(') {
+                        idx++;
+                        while (idx < str.size() && str[idx] != ')') {
+                            if (str[idx] == '{') {
+                                idx++;
+                                while (idx < str.size() && str[idx] != '}') {
+                                    skip_spaces(str, idx);
+                                    tmp = get_word(str, idx);
+                                    if (tmp.size() > 0) {
+                                        to_lower(tmp);
+                                        single_type_params.push_back(tmp);
+                                    }
+                                    skip_spaces(str, idx);
+                                    if (str[idx] == ',') {
+                                        idx++;
+                                    }
+                                }
+                                if (idx == str.size()) {
+                                    std::cout << "In create table operation: closing '}' missing" << std::endl;
+                                    throw std::runtime_error("In create table operation: closing '}' missing");
+                                }
+                                idx++;
+                                // can push_back empty vector.
+                                // It means columns has no attributes.
+                                params.push_back(single_type_params);
+                                single_type_params.clear();
+                            }
+                            skip_spaces(str, idx);
+                            tmp = get_word(str, idx);
+                            // column name
+                            single_type_params.push_back(tmp);
+                            single_type_params.clear();
+                            skip_spaces(str, idx);
+                            if (str[idx] != ':') {
+                                std::cout << "Error in create table operation:" << std::endl
+                                          << "You should write ':' between column name and column type." << std::endl
+                                          << "Column name is one word without spaces" << std::endl;
+                                throw std::runtime_error("Error in create table operation");
+                            }
+                            idx++;
+                            skip_spaces(str, idx);
+                            tmp = get_word(str, idx);
+                            to_lower(tmp);
+                            bool str_flag = false;
+                            if (tmp == "string") {
+                                str_flag = true;
+                            }
+                            single_type_params.push_back(tmp);
+                            skip_spaces(str, idx);
+                            if (str[idx] == '[') {
+                                idx++;
+                                tmp = get_word(str, idx);
+                                if (str[idx] != ']') {
+                                    throw std::runtime_error("In create table operation: closing ']' is missing.");
+                                }
+                                single_type_params.push_back(tmp);
+                                skip_spaces(str, idx);
+                            }
+                            if (str[idx] == '=') {
+                                idx++;
+                                skip_spaces(str, idx);
+                                if (str_flag) { // default string values should be inside ""
+                                    if (str[idx] == '\"') {
+                                        idx++;
+                                        tmp = read_until<'\"'>(str, idx);
+                                        idx++;
+                                    } else {
+                                        std::cout << "String literal should be inside double quotes (\" \")." << std::endl;
+                                        throw std::runtime_error("String literal should be inside double quotes (\" \").");
+                                    }
+                                } else {
+                                    tmp = get_word(str, idx);
+                                }
+                                single_type_params.push_back(tmp);
+                                skip_spaces(str, idx);
+                                params.push_back(single_type_params);
+                                single_type_params.clear();
+                            }
+                            if (str[idx] == ',') {
+                                idx++;
+                            }
+                        }
+                    }
+                    break;
+                
+                case INSERT:
+                    skip_spaces(str, idx);
+                    if (str[idx] == '(') {
+                        while (idx < str.size() && str[idx] != ')') {
+                            tmp = get_word(str, idx);
+                            single_type_params.push_back(tmp);
+                            skip_spaces(str, idx);
+                            if (str[idx] != '=') {
+                                std::cout << "Insert params should look like:" << std::endl
+                                          <<"<column name> = <value>" << std::endl;
+                                throw std::runtime_error("Insert parametrs format error.");
+                            }
+                            skip_spaces(str, idx);
+                            if (str[idx] == '\"') {
+                                tmp = read_until<'\"'>(str, idx);
+                                idx++;
+                            } else {
+                                tmp = get_word(str, idx);
+                            }
+                            skip_spaces(str, idx);
+                            single_type_params.push_back(tmp);
+                            params.push_back(single_type_params);
+                            single_type_params.clear();
+                            if (str[idx] == ',') {
+                                idx++;
+                            }
+                            skip_spaces(str, idx);
+                        }
+                        if (idx == str.size()) {
+                            std::cout << "In insert operation: closing '}' is missing" << std::endl;
+                            throw std::runtime_error("In insert operation: closing '}' is missing");
+                        }
+                        idx++;
+                        skip_spaces(str, idx);
+                        tmp = get_word(str, idx);
+                        if (tmp != "to") { 
+                            std::cout << "In insert operation: keyword \"to\" is missing" << std::endl
+                                      << "Operation should look like this: insert (<values>) to <table>" << std::endl;
+                            throw std::runtime_error("In insert operation: keyword \"to\" is missing");
+                        }
+                        skip_spaces(str, idx);
+                        tmp = get_word(str, idx);
+                        single_type_params.push_back(tmp);
+                        params.push_back(single_type_params);
+                        single_type_params.clear();
+                        skip_spaces(str, idx);
+                        if (idx < str.size() && str[idx] != ';') {
+                            std::cout << "Operation insert have to end on table name";
+                            throw std::runtime_error("Operation insert have to end on table name");
+                        }
+                    } else {
+                        std::cout << "Insert operation requires parameters in brackets '()'." << std::endl;
+                        throw std::runtime_erorr("Insert operation requires parameters in brackets '()'.");
+                    }
+                    break;
+
+                case SELECT:
+                    skip_spaces(str, idx);
+                    for (tmp = get_word(str, idx), skip_spaces(str, idx); str[idx] == ','; tmp = get_word(str, idx)) {
+                        single_type_params.push_back(tmp);
+                        skip_spaces(str, idx);
+                    }
+                    single_type_params.push_back(tmp);
+                    skip_spaces(str, idx);
+                    // selected columns
+                    params.push_back(single_type_params);
+                    single_type_params.clear();
+
+                    tmp = get_word(str, idx);
+                    to_lower(tmp);
+                    skip_spaces(str, idx);
+                    if (tmp != "from") {
+                        std::cout << "In operation select: keyword from is missing." << std::endl;
+                                  << "select <columns> from <table> where <condition>" << std::endl;
+                        throw std::runtime_error("In operation select: keyword from is missing.");
+                    }
+
+                    tmp = get_word(str, idx);
+                    skip_spaces(str, idx);
+                    single_type_params.push_back(tmp);
+                    // name of the table to select from
+                    params.push_back(single_type_params);
+                    single_type_params.clear();
+
+                    tmp = get_word(str, idx);
+                    to_lower(tmp);
+                    skip_spaces(str, idx);
+                    if (tmp != "where") {
+                        std::cout << "In operation select: keyword from is missing." << std::endl;
+                                  << "select <columns> from <table> where <condition>" << std::endl;
+                        throw std::runtime_error("In operation select: keyword from is missing.");
+                    }
+                    tmp = "";
+                    while (idx < str.size() && str[idx] != ';') {
+                        tmp += str[idx];
+                        idx++;
+                    }
+                    single_type_params.push_back(tmp);
+                    // condition
+                    params.push_back(single_type_params);
+                    single_type_params.clear();
+
+                    break;
+
+                case UPDATE:
+                    skip_spaces(str, idx);
+                    tmp = get_word(str, idx);
+                    single_type_params.push_back(tmp);
+                    // name of the table to update
+                    params.push_back(single_type_params);
+                    single_type_params.clear();
+                    skip_spaces(str, idx);
+
+                    tmp = get_word(str, idx);
+                    to_lower(tmp);
+                    if (tmp != "set") {
+                        std::cout << "In operation update: keyword set is missing" << std::endl
+                                  << "update <table> set <assignments> where <condition>" << std::endl;
+                        throw std::runtime_error("In operation update: keyword set is missing");
+                    }
+                    skip_spaces(str, idx);
+
+                    tmp = "";
+                    while (idx < str.size() && tmp != "where") {
+                        tmp = read_until<'='>(str, idx);
+                        remove_extra_spaces(tmp);
+                        idx++;
+                        skip_spaces(str, idx);
+                        single_type_params.push_back(tmp);
+                        tmp = ""
+                        while (idx < str.size() && tmp != "where") {
+                            if (str[idx] == '\"') {
+                                idx++;
+                                if (idx == str.size()) {
+                                    std::cout << "Missing closing quote in string literal" << std::endl;
+                                    throw std::runtime_error("Missing closing quote in string literal");
+                                }
+                                tmp += "\"" + read_until<'\"'>(str, idx) + "\"";
+                                idx++;
+                                if (idx == str.size()) {
+                                    std::cout << "Unfinished operation update" << std::endl;
+                                    throw std::runtime_error("Unfinished operation update");
+                                }
+                                skip_spaces(str, idx);
+                            } else {
+                                tmp += get_word(str, idx);
+                                skip_spaces(str, idx);
+                            }
+                            if (str[idx] == ',') {
+                                single_type_params.push_back(tmp);
+                                params.push_back(single_type_params);
+                                single_type_params.clear();
+                            }
+                        }
+                        single_type_params.push_back(tmp);
+                        // assignments
+                        params.push_back(single_type_params);
+                        single_type_params.clear();
+                    }
+                    if (idx == str.size()) {
+                        std::cout << "In operation update: keyword from is missing." << std::endl;
+                                  << "update <table> set <assignments> where <condition>" << std::endl;
+                        throw std::runtime_error("In operation update: keyword from is missing.");
+                    }
+                    tmp = "";
+                    while (idx < str.size() && str[idx] != ';') {
+                        tmp += str[idx];
+                        idx++;
+                    }
+                    single_type_params.push_back(tmp);
+                    // condition
+                    params.push_back(single_type_params);
+                    single_type_params.clear();
+                    break;
+
+                case DELETE:
+                    skip_spaces(str, idx);
+                    tmp = get_word(str, idx);
+                    single_type_params.push_back(tmp);
+                    // name of the table to delete from
+                    params.push_back(single_type_params);
+                    single_type_params.clear();
+                    skip_spaces(str, idx);
+
+                    tmp = get_word(str, idx);
+                    to_lower(tmp);
+                    skip_spaces(str, idx);
+                    if (tmp != "where") {
+                        std::cout << "In operation select: keyword from is missing." << std::endl;
+                                  << "select <columns> from <table> where <condition>" << std::endl;
+                        throw std::runtime_error("In operation select: keyword from is missing.");
+                    }
+                    tmp = "";
+                    while (idx < str.size() && str[idx] != ';') {
+                        tmp += str[idx];
+                        idx++;
+                    }
+                    single_type_params.push_back(tmp);
+                    // condition
+                    params.push_back(single_type_params);
+                    single_type_params.clear();
+
+                    break;
+
+                case JOIN:
+
+                    break;
+
+                case CREATE_INDEX:
+
+                    break;
             }
-            if (col_default_value[i].size()) {
-                std::cout << " = " << col_default_value[i];
-            }
-            std::cout << std::endl;
         }
-    } else {
-        std::cout << "Log: empty table " << table_name << " ready to be created" << std::endl;
+        answer.push_back(std::make_pair(params, operation_type));
+        params.clear();
     }
+}   
+
+OperationCreate::OperationCreate(const std::string& args) {
+    
 }
 
 Table OperationCreate::execute() {
     Table a;
     return a;
+}
+
+Query::Query(const std::string& str) {
+    size_t idx = 0;
+    std::string command;
+    auto ops = get_keywords(str, idx);
 }
