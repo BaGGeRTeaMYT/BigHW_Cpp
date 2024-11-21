@@ -10,7 +10,7 @@ public:
     IntCell( int value );
 
     cell_type get_type( void ) const override;
-    [[nodiscard]] int get_value( void ) const;
+    [[nodiscard]] std::pair<bool, int> get_value( void ) const;
     void set_value( int value );
 
 private:

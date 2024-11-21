@@ -1,34 +1,30 @@
 #include <BytesCell.h>
 
-BytesCell::BytesCell( void ): Cell(true, INT32_TYPE), m_value(0), m_size(0) {
+BytesCell::BytesCell( size_t size ): Cell(true, BYTES_TYPE), m_size(0) {
 }
 
-BytesCell::BytesCell( bytes value ): Cell(false, INT32_TYPE), m_value(value), m_size(value.size()) {
+BytesCell::BytesCell( bytes value, size_t size ): Cell(false, BYTES_TYPE), m_value(value), m_size(value.size()) {
+    if (value.size() > size) {
+        throw std::runtime_error("Trying to fit bytes with greater length then expected\n");
+    }
 }
 
 cell_type BytesCell::get_type( void ) const {
-    if (m_is_null) { 
-        std::cerr << "Can\'t get type of NULL cell" << std::endl;
-    }
     return m_type;
 }
 
 void BytesCell::set_value( bytes value ) {
-    m_is_null = false;
+    if (value.size() > m_size) {
+        throw std::runtime_error("Trying to fit bytes with greater length then expected\n");
+    }
     m_value = value;
-    m_size = value.size();
+    m_is_null = false;
 }
 
-bytes BytesCell::get_value( void ) const {
-    if (m_is_null) {
-        std::cerr << "Can\'t get value of NULL cell" << std::endl;
-    }
-    return m_value;
+std::pair<bool, bytes> BytesCell::get_value( void ) const {
+    return {m_is_null, m_value};
 }
 
 size_t BytesCell::get_size( void ) const {
-    if (m_is_null) {
-        std::cerr << "Can\'t get size of NULL cell" << std::endl;
-    }
     return m_size;
 }

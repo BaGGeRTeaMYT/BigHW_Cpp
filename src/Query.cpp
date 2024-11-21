@@ -212,6 +212,7 @@ OperationCreate::OperationCreate(const std::string& args) {
 }
 
 Table OperationCreate::execute() {
-    Table a;
+    // Table a;
+    Table a("mom");
     return a;
 }

@@ -7,20 +7,14 @@ IntCell::IntCell( int value ): Cell(false, INT32_TYPE), m_value(value) {
 }
 
 cell_type IntCell::get_type( void ) const {
-    if (m_is_null) { 
-        std::cerr << "Can\'t get type of NULL cell" << std::endl;
-    }
     return m_type;
 }
 
 void IntCell::set_value( int value ) {
-    m_is_null = false;
     m_value = value;
+    m_is_null = false;
 }
 
-int IntCell::get_value( void ) const {
-    if (m_is_null) {
-        std::cerr << "Can\'t get value of NULL cell" << std::endl;
-    }
-    return m_value;
+std::pair<bool, int> IntCell::get_value( void ) const {
+    return {m_is_null, m_value};
 }

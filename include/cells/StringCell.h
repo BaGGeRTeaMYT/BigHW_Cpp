@@ -7,11 +7,11 @@
 class StringCell : public Cell {
 public:
 
-    StringCell( void );
-    StringCell( std::string value );
+    StringCell( size_t size );
+    StringCell( std::string value, size_t size );
 
     const char get_type( void ) const override;
-    [[nodiscard]] std::string get_value( void ) const;
+    [[nodiscard]] std::pair<bool, std::string> get_value( void ) const;
     [[nodiscard]] size_t get_size( void ) const;
     void set_value( std::string value );
 

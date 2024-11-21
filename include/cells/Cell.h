@@ -15,6 +15,7 @@ class Cell {
 public:
 
     Cell(bool is_null, cell_type type);
+    [[noexcept]] void set_null( bool state );
     [[nodiscard]] virtual const cell_type get_type( void ) const = 0;
 
 protected:

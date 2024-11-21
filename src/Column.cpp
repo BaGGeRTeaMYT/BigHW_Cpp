@@ -1,29 +1,50 @@
 #include <Column.h>
 
-Column::Column( std::string name ): m_name(name), m_cells(0) {}
-
-void Column::add_cell( int position, std::shared_ptr<Cell> cell) {
-    if (position > m_cells.size() || position < 0) {
-        std::cerr << "Invalid position" << std::endl;
+Column::Column( column_name name, cell_type type, attribute unique, attribute autoincrement, attribute key ): m_name(name), m_type(type), m_cells(0),
+                                                                                                            m_attributes({unique, autoincrement, key}) {
+    if (key) {
+        m_attributes.unique = true;
     }
-    if (position == m_cells.size()) { m_cells.push_back(cell); }
-    else { m_cells.insert(m_cells.begin() + position, cell); }
+    if (autoincrement and type != INT32_TYPE) {
+        throw std::runtime_error("Can\'t create non intager autoincrement column\n");
+    }
+}
+
+void Column::add_cell( cell_pointer cell ) {
+    if (cell->get_type() != m_type) {
+        throw std::runtime_error("Trying to add invalid type cell to column\n");
+    }
+    if (m_attributes.unique) {
+
+    }
+    if (m_attributes.autoincrement) {
+        
+    }
+    
 }
 
 void Column::remove_cell( int position ) {
     if (position >= m_cells.size() || position < 0) {
-        std::cerr << "Invalid position" << std::endl;
+        throw std::runtime_error("Invalid position\n");
     }
-    m_cells.erase(m_cells.begin() + position);
+    m_cells[position]->set_null(true);
 }
 
-[[nodiscard]] std::shared_ptr<Cell>& Column::get_cell( int position ) {
+cell_pointer& Column::get_cell( int position ) {
     if (position >= m_cells.size() || position < 0) {
-        std::cerr << "Invalid position" << std::endl;
+        throw std::runtime_error("Invalid position\n");
     }
     return m_cells[position];
 }
 
-[[nodiscard, noexcept]] std::vector< std::shared_ptr<Cell> >& Column::get_all_cells( void ) {
+column_name Column::get_name( void ) const {
+    return m_name;
+}
+
+const std::vector<cell_pointer>& Column::get_all_cells( void ) const {
     return m_cells;
+}
+
+size_t Column::get_size( void ) const {
+    return m_cells.size();
 }
