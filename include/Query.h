@@ -14,7 +14,8 @@ enum OP_TYPE {
     UPDATE,
     DELETE,
     JOIN,
-    CREATE_INDEX
+    CREATE_U_INDEX,
+    CREATE_O_INDEX
 };
 
 class Operation {
@@ -104,17 +105,21 @@ class OperationJoin : public Operation {
     // Condition
 };
 
-class OperationIndex : public Operation {
-    // create (un)ordered index on <table> by <columns>
+class OperationOrderedIndex : public Operation {
+    // create ordered index on <table> by <columns>
     public:
-    OperationIndex(const std::string& args);
+    OperationOrderedIndex(const std::string& args);
     Table execute() override;
-
-    private:
-    bool ordered; // map if true
-                  // unordered map otherwise
     
-}
+};
+
+class OperationUnorderedIndex : public Operation {
+    // create unordered index on <table> by <columns>
+    public:
+    OperationUnorderedIndex(const std::string& args);
+    Table execute() override;
+    
+};
 
 class Comb: public Operation {
     public:
@@ -133,6 +138,7 @@ class Query {
 
     private:
     std::vector<std::shared_ptr<Operation>> op;
+    std::vector<std::pair<std::vector<std::vector<std::string>>, char>> op_str;
 };
 
 #endif // QueryHEADER
