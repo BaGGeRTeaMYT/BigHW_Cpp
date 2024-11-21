@@ -1,5 +1,225 @@
 #include <Query.h>
 
+ExpressionParser::ExpressionParser(const std::string& expression) {
+    m_actions = toPolishNotation(tokenize(expression));
+}
+
+const std::string& ExpressionParser::get_actions() const {
+    return m_actions;
+}
+
+std::vector<Token> ExpressionParser::tokenize(const std::string& expression) {
+    std::vector<Token> tokens;
+    // regulat expressions are great thing!
+    std::regex token_regex(R"(([a-zA-Z_][a-zA-Z0-9_]*)|(0x[0-9A-Fa-f]+)|(\d+)|(true|false)|(\|\w+\|)|([\+\-\*/%<>=!&|^\(\)]+)|(\"[^\"]*\"))");
+    std::sregex_iterator iter(expression.begin(), expression.end(), token_regex);
+    std::sregex_iterator end;
+
+    for (; iter != end; ++iter) {
+        std::smatch match = *iter;
+        std::string token_value = match.str();
+        Token token;
+        bool value_set = false;
+
+        if (std::regex_match(token_value, std::regex(R"(true|false)"))) {
+            token.type = TokenType::BOOL;
+        } else if (std::regex_match(token_value, std::regex(R"(0x[0-9A-Fa-f]+)"))) {
+            token.type = TokenType::BYTES;
+        } else if (std::regex_match(token_value, std::regex(R"(\d+)"))) {
+            token.type = TokenType::INT32;
+        } else if (std::regex_match(token_value, std::regex(R"(\|\w+\|)"))) {
+            if (token_value.front() == '|' && token_value.back() == '|') {
+                token.type = TokenType::VARIABLE;
+                token.value = token_value.substr(1, token_value.size() - 2); // Remove the '|' characters
+                tokens.push_back(token);
+                token.type = TokenType::OPERATOR;
+                token.value = "SIZE";
+                value_set = true;
+            } else {
+                throw std::invalid_argument("Opening/Closing '|' is missing");
+            }
+        } else if (std::regex_match(token_value, std::regex(R"([a-zA-Z_][a-zA-Z0-9_]*)"))) {
+            token.type = TokenType::VARIABLE;
+        } else if (std::regex_match(token_value, std::regex(R"([\+\-\*/%<>=!&|^\(\)]+)"))) {
+            if (token_value == "!(") {
+                token.type = TokenType::OPERATOR;
+                token.value = "!";
+                tokens.push_back(token);
+                token.type = TokenType::LPAREN;
+                token.value = "(";
+                value_set = true;
+            } else if (token_value == "(") {
+                token.type = TokenType::LPAREN;
+            } else if (token_value == ")") {
+                token.type = TokenType::RPAREN;
+            } else if (token_value == "&&" || token_value == "||" || token_value == "^^") {
+                token.type = TokenType::OPERATOR;
+            } else {
+                token.type = TokenType::OPERATOR;
+            }
+        } else if (std::regex_match(token_value, std::regex(R"(\"[^\"]*\")"))) {
+            token.type = TokenType::STRING;
+        } else {
+            token.type = TokenType::INVALID;
+        }
+
+        if (!value_set) {
+            token.value = token_value;
+        }
+        tokens.push_back(token);
+    }
+
+    return tokens;
+}
+
+int ExpressionParser::getPrecedence(const std::string& op) {
+    if (op == "||" || op == "&&" || op == "^^") return 1;
+    if (op == "=" || op == "!=" || op == "<" || op == ">" || op == "<=" || op == ">=") return 2;
+    if (op == "+" || op == "-") return 3;
+    if (op == "*" || op == "/" || op == "%") return 4;
+    if (op == "SIZE" || op == "!") return 5;
+    return 0;
+}
+
+bool ExpressionParser::isValidOperation(const std::string& op, const TokenType& leftType, const TokenType& rightType) {
+    if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
+        return (leftType == TokenType::INT32 && rightType == TokenType::INT32) ||
+               (leftType == TokenType::VARIABLE && rightType == TokenType::INT32) ||
+               (leftType == TokenType::INT32 && rightType == TokenType::VARIABLE) ||
+               (leftType == TokenType::VARIABLE && rightType == TokenType::VARIABLE);
+    }
+    if (op == "<" || op == ">" || op == "=" || op == "<=" || op == ">=" || op == "!=") {
+        return leftType == rightType ||
+               leftType == TokenType::VARIABLE || rightType == TokenType::VARIABLE;
+    }
+    if (op == "&&" || op == "||" || op == "^^") {
+        return (leftType == TokenType::BOOL || leftType == TokenType::VARIABLE) &&
+               (rightType == TokenType::BOOL || rightType == TokenType::VARIABLE);
+    }
+    if (op == "SIZE") {
+        return leftType == TokenType::VARIABLE
+            || leftType == TokenType::STRING || leftType == TokenType::BYTES;
+    }
+    if (op == "!") {
+        return leftType == TokenType::BOOL || leftType == TokenType::VARIABLE;
+    }
+    return false;
+}
+
+std::string ExpressionParser::toPolishNotation(const std::vector<Token>& tokens) {
+    std::stack<std::string> output;
+    std::stack<std::string> operators;
+    std::unordered_map<std::string, TokenType> variableTypes;
+
+    for (const auto& token : tokens) {
+        if (token.type == TokenType::INT32 || token.type == TokenType::BOOL || token.type == TokenType::VARIABLE || token.type == TokenType::STRING || token.type == TokenType::BYTES) {
+            output.push(token.value);
+            if (token.type == TokenType::VARIABLE) {
+                variableTypes[token.value] = token.type;
+            }
+        } else if (token.type == TokenType::OPERATOR) {
+            while (!operators.empty() && getPrecedence(operators.top()) >= getPrecedence(token.value)) {
+                output.push(operators.top());
+                operators.pop();
+            }
+            operators.push(token.value);
+        } else if (token.type == TokenType::LPAREN) {
+            operators.push(token.value);
+        } else if (token.type == TokenType::RPAREN) {
+            while (!operators.empty() && operators.top() != "(") {
+                output.push(operators.top());
+                operators.pop();
+            }
+            if (!operators.empty() && operators.top() == "(") {
+                operators.pop();
+            } else {
+                throw std::invalid_argument("Mismatched parentheses");
+            }
+        } else {
+            throw std::invalid_argument("Invalid token: " + token.value);
+        }
+    }
+
+    while (!operators.empty()) {
+        if (operators.top() == "(" || operators.top() == ")") {
+            throw std::invalid_argument("Mismatched parentheses");
+        }
+        output.push(operators.top());
+        operators.pop();
+    }
+
+    std::vector<std::string> polishNotation;
+    while (!output.empty()) {
+        polishNotation.push_back(output.top());
+        output.pop();
+    }
+    std::reverse(polishNotation.begin(), polishNotation.end());
+
+    // Validate the Polish notation
+    std::stack<TokenType> typeStack;
+    for (const auto& token : polishNotation) {
+        if (variableTypes.count(token)) {
+            typeStack.push(variableTypes[token]);
+        } else if (token == "+" || token == "-" || token == "*" || token == "/" || token == "%" ||
+                   token == "<" || token == ">" || token == "=" || token == "<=" || token == ">=" || token == "!=" ||
+                   token == "&&" || token == "||" || token == "^^" || token == "SIZE" || token == "!") {
+            if (token == "SIZE" || token == "!") {
+                if (typeStack.empty()) {
+                    throw std::invalid_argument("Invalid expression: not enough operands for operator " + token);
+                }
+                TokenType varType = typeStack.top(); typeStack.pop();                    if (!isValidOperation(token, varType, TokenType::INVALID)) {
+                throw std::invalid_argument("Invalid operation: " + token + " for type " + std::to_string(static_cast<int>(varType)));
+                }
+                if (token == "SIZE") {
+                    typeStack.push(TokenType::INT32); // Push the result type back to the stack
+                } else {
+                    typeStack.push(TokenType::BOOL); // Push the result type back to the stack
+                }
+            } else {
+                if (typeStack.size() < 2) {
+                    throw std::invalid_argument("Invalid expression: not enough operands for operator " + token);
+                }
+                TokenType rightType = typeStack.top(); typeStack.pop();
+                TokenType leftType = typeStack.top(); typeStack.pop();
+                if (!isValidOperation(token, leftType, rightType)) {
+                    throw std::invalid_argument("Invalid operation: " + token + " for types " + std::to_string(static_cast<int>(leftType)) + " and " + std::to_string(static_cast<int>(rightType)));
+                }
+                // Push the result type back to the stack
+                if (token == "<" || token == ">" || token == "=" || token == "<=" || token == ">=" || token == "!=" ||
+                    token == "&&" || token == "||" || token == "^^") {
+                    typeStack.push(leftType == TokenType::VARIABLE || rightType == TokenType::VARIABLE ? TokenType::VARIABLE : TokenType::BOOL);
+                } else {
+                    typeStack.push(leftType == TokenType::VARIABLE || rightType == TokenType::VARIABLE ? TokenType::VARIABLE : TokenType::INT32);
+                }
+            }
+        } else {
+            // If the token is an operand (INT32, BOOL, VARIABLE, STRING, BYTES), push its type to the stack
+            if (std::regex_match(token, std::regex(R"(\d+)"))) {
+                typeStack.push(TokenType::INT32);
+            } else if (token == "true" || token == "false") {
+                typeStack.push(TokenType::BOOL);
+            } else if (std::regex_match(token, std::regex(R"(\"[^\"]*\")"))) {
+                typeStack.push(TokenType::STRING);
+            } else if (std::regex_match(token, std::regex(R"(0x[0-9A-Fa-f]+)"))) {
+                typeStack.push(TokenType::BYTES);
+            } else {
+                throw std::invalid_argument("Invalid token in Polish notation: " + token);
+            }
+        }
+    }
+
+    if (typeStack.size() != 1) {
+        throw std::invalid_argument("Invalid expression: too many operands");
+    }
+
+    // Convert the Polish notation to a string
+    std::stringstream ss;
+    for (const auto& token : polishNotation) {
+        ss << token << " ";
+    }
+    return ss.str();
+}
+
 void remove_extra_spaces(std::string& str) {
     while (str.back() == ' ') {
         str.pop_back();

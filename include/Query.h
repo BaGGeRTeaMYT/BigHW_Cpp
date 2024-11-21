@@ -2,10 +2,16 @@
 #define QueryHEADER
 
 #include <Table.h>
+#include <iostream>
+#include <stack>
 #include <string>
+#include <sstream>
+#include <unordered_map>
 #include <vector>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
+#include <regex>
 
 enum OP_TYPE {
     CREATE_TABLE = 0,
@@ -16,6 +22,49 @@ enum OP_TYPE {
     JOIN,
     CREATE_U_INDEX,
     CREATE_O_INDEX
+};
+
+
+// Token types
+enum class TokenType {
+    INT32,
+    BOOL,
+    BYTES,
+    STRING,
+    OPERATOR,
+    VARIABLE,
+    LPAREN,
+    RPAREN,
+    SIZE,
+    INVALID
+};
+
+// Token structure
+struct Token {
+    TokenType type;
+    std::string value;
+};
+
+class ExpressionParser {
+public:
+    ExpressionParser(const std::string& expression);
+
+    const std::string& get_actions();
+
+private:
+    std::string m_actions;
+
+    // @brief Function to tokenize the input expression
+    std::vector<Token> tokenize(const std::string& expression);
+
+    // @brief Function to get the precedence of operators
+    int getPrecedence(const std::string& op);
+
+    // @brief Function to check if the operation is valid for the given types
+    bool isValidOperation(const std::string& op, const TokenType& leftType, const TokenType& rightType);
+
+    // @brief Function to convert infix expression to Polish notation
+    std::string toPolishNotation(const std::vector<Token>& tokens);
 };
 
 class Operation {
