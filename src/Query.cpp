@@ -889,7 +889,8 @@ OperationCreate::OperationCreate(const std::vector<std::vector<std::string>>& ar
 }
 
 Table OperationCreate::execute() {
-    Table a;
+    // Table a;
+    Table a("mom");
     return a;
 }
 

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <Query.h>
+#include <Table.h>
 
 int main() {
     // should begin with create table
@@ -36,5 +37,9 @@ int main() {
         ));
 
     // new tests required
+
+    // Table a("asd");
+    // a.get_all_columns();
+
     return 0;
 }

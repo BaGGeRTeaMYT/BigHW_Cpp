@@ -1,25 +1,37 @@
 #ifndef DatabaseHEADER
 #define DatabaseHEADER
 
-#include <vector>
+#include <map>
+#include <map>
 #include <fstream>
 #include <memory>
 #include <string>
 #include <Table.h>
 
+typedef std::shared_ptr<Table> table_pointer;
+typedef std::map<std::string, std::shared_ptr<Table>> table_container;
+
+typedef std::shared_ptr<Table> table_pointer;
+typedef std::map<std::string, std::shared_ptr<Table>> table_container;
+
 class Database {
 public:
 
-    Database( void );
+    Database( std::string name );
+    Database( std::string name );
 
-    void add_table( int position, std::shared_ptr<Table> table );
-    void remove_table( int position );
-    std::shared_ptr<Table> get_table( int position );
+    void add_table( table_pointer table );
+    void remove_table( std::string name );
+    std::string get_name( void ) const;
+    table_container::const_iterator find_table( const std::string& name ) const;
+    table_pointer get_table( std::string name ) const;
+    const table_container& get_all_tables( void ) const;
     
 private:
 
     std::string m_name;
-    std::vector< std::shared_ptr<Table> > m_tables;
+    table_container m_tables;
+    table_container m_tables;
 
 };
 
