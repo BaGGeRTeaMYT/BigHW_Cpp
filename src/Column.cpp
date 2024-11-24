@@ -1,11 +1,11 @@
 #include <Column.h>
 
-Column::Column( column_name name, cell_type type, attribute unique, attribute autoincrement, attribute key ): m_name(name), m_type(type), m_cells(0),
-                                                                                                            m_attributes({unique, autoincrement, key})
-                                                                                                            m_string_index('')
-                                                                                                            m_bytes_index({0})
-                                                                                                            m_bool_index(0)
-                                                                                                            m_int_index(0) {
+Column::Column( column_name name, cell_type type, int length, attribute unique, attribute autoincrement, attribute key ): m_name(name), m_type(type), m_cells(0), m_length(length),
+                                                                                                            m_attributes({unique, autoincrement, key}),
+                                                                                                            m_string_index({}),
+                                                                                                            m_bytes_index({}),
+                                                                                                            m_bool_index({}),
+                                                                                                            m_int_index({}) {
     if (key) {
         m_attributes.unique = true;
     }
@@ -18,30 +18,82 @@ void Column::add_cell( cell_pointer cell ) {
     if (cell->get_type() != m_type) {
         throw std::runtime_error("Trying to add invalid type cell to column\n");
     }
-    if (m_attributes.unique) {
-        for (auto i: m_cells) {
-            if (i.get() == cell.get()) {
-                throw std::runtime_error("Trying to add not unique cell\n");
-            }
+    if (cell->get_type() == STRING_TYPE) {
+        int cell_len = std::dynamic_pointer_cast<StringCell>(cell)->get_size();
+        if (cell_len != m_length) {
+            throw std::runtime_error("Trying to add invalid length string cell to column\n");
         }
-        m_cells.push_back(cell);
     }
-    if (m_attributes.autoincrement) {
-        m_cells.push_back(m_cells.size() + 1);
+    if (cell->get_type() == BYTES_TYPE) {
+        int cell_len = std::dynamic_pointer_cast<BytesCell>(cell)->get_size();
+        if (cell_len > m_length) {
+            throw std::runtime_error("Trying to add invalid length bytes cell to column\n");
+        }
+    }
+    if (m_attributes.unique) {
+        switch (m_type) {
+            case INT32_TYPE:
+                for (auto i: m_cells) {
+                    if (std::dynamic_pointer_cast<IntCell>(i)->get_value().second == 
+                        std::dynamic_pointer_cast<IntCell>(cell)->get_value().second) {
+                            throw std::runtime_error("Trying to insert not unique cell in unique column\n");
+                    }
+                }
+                break;
+            case BOOL_TYPE:
+                for (auto i: m_cells) {
+                    if (std::dynamic_pointer_cast<BoolCell>(i)->get_value().second == 
+                        std::dynamic_pointer_cast<BoolCell>(cell)->get_value().second) {
+                            throw std::runtime_error("Trying to insert not unique cell in unique column\n");
+                    }
+                }
+                break;
+            case BYTES_TYPE:
+                for (auto i: m_cells) {
+                    if (std::dynamic_pointer_cast<BytesCell>(i)->get_value().second == 
+                        std::dynamic_pointer_cast<BytesCell>(cell)->get_value().second) {
+                            throw std::runtime_error("Trying to insert not unique cell in unique column\n");
+                    }
+                }
+                break;
+            case STRING_TYPE:
+                for (auto i: m_cells) {
+                    if (std::dynamic_pointer_cast<StringCell>(i)->get_value().second == 
+                        std::dynamic_pointer_cast<StringCell>(cell)->get_value().second) {
+                            throw std::runtime_error("Trying to insert not unique cell in unique column\n");
+                    }
+                }
+                break;
+            default:
+                throw std::runtime_error("Something has happened to column type\n");
+                break;
+            }
     }
     if (m_attributes.key) {
         switch (m_type) {
-            INT32_TYPE:
+            case INT32_TYPE:
+                m_int_index.insert(std::dynamic_pointer_cast<IntCell>(cell)->get_value().second);
                 break;
-            BOOL_TYPE:
+            case BOOL_TYPE:
+                m_bool_index.insert(std::dynamic_pointer_cast<BoolCell>(cell)->get_value().second);
                 break;
-            BYTES_TYPE:
+            case BYTES_TYPE:
+                m_bytes_index.insert(std::dynamic_pointer_cast<BytesCell>(cell)->get_value().second);
                 break;
-            STRING_TYPE:
+            case STRING_TYPE:
+                m_string_index.insert(std::dynamic_pointer_cast<StringCell>(cell)->get_value().second);
                 break;
             default:
-                throw std::runtime_error("dafaq did your pass in the column\n");
+                throw std::runtime_error("Something had happened to comuln type\n");
+                break;
         }
+    }
+    if (m_attributes.autoincrement) {
+        cell_pointer tmp_cell = std::shared_ptr<Cell>(new IntCell(std::dynamic_pointer_cast<IntCell>(m_cells[m_cells.size() - 1])->get_value().second + 1));
+        m_cells.push_back(tmp_cell);
+    }
+    else {
+        m_cells.push_back(cell);
     }
 }
 
@@ -49,7 +101,25 @@ void Column::remove_cell( int position ) {
     if (position >= m_cells.size() || position < 0) {
         throw std::runtime_error("Invalid position\n");
     }
-    m_cells[position]->set_null(true);
+    if (m_attributes.key) {
+        cell_pointer del_cell = get_cell(position);
+        if (m_type == INT32_TYPE) {
+            int val = std::dynamic_pointer_cast<IntCell>(del_cell)->get_value().second;
+            m_int_index.erase(val);
+        } else if (m_type == STRING_TYPE) {
+            std::string val = std::dynamic_pointer_cast<StringCell>(del_cell)->get_value().second;
+            m_string_index.erase(val);
+        } else if (m_type == BOOL_TYPE) {
+            bool val = std::dynamic_pointer_cast<BoolCell>(del_cell)->get_value().second;
+            m_bool_index.erase(val);
+        } else if (m_type == BYTES_TYPE) {
+            bytes val = std::dynamic_pointer_cast<BytesCell>(del_cell)->get_value().second;
+            m_bytes_index.erase(val);
+        } else {
+            throw std::runtime_error("Something has happened to column type\n");
+        }
+    }
+    m_cells.erase(m_cells.begin() + position);
 }
 
 cell_pointer& Column::get_cell( int position ) {

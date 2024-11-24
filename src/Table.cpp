@@ -8,7 +8,12 @@ table_name Table::get_name( void ) const {
 }
 
 void Table::add_column( column_pointer column ) {
+    int old_size = m_columns.size();
     m_columns[column->get_name()] = column;
+    int new_size = m_columns.size();
+    if (old_size == new_size) {
+        throw std::runtime_error("Trying to add column with similar name to table\n");
+    }
 }
 
 void Table::remove_column( const column_name& name ) {

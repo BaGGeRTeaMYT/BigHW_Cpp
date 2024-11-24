@@ -7,7 +7,6 @@
 #include <iostream>
 #include <Cells.h>
 #include <set>
-#include <Types.h>
 
 typedef std::string column_name;
 typedef std::shared_ptr<Cell> cell_pointer;
@@ -17,12 +16,11 @@ typedef struct Attibutes {
     bool autoincrement;
     bool key;
 } attributes;
-typedef std::set index;     
 
 class Column {
 public:
 
-    Column( column_name name, cell_type type, 
+    Column( column_name name, cell_type type, int length = -1, 
         attribute unique = 0, attribute autoincrement = 0, attribute key = 0 );
 
     void add_cell( cell_pointer cell = nullptr );
@@ -40,10 +38,12 @@ private:
     cell_type m_type;
     std::vector<cell_pointer> m_cells;
     attributes m_attributes;
-    index<std::string> m_string_index;
-    index<bytes> m_bytes_index;
-    index<bool> m_bool_index;
-    index<int> m_int_index;
+    std::set<std::string> m_string_index;
+    std::set<bytes> m_bytes_index;
+    std::set<bool> m_bool_index;
+    std::set<int> m_int_index;
+    
+    int m_length;
     
 };
 
