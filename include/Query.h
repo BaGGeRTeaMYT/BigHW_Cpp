@@ -49,7 +49,7 @@ class ExpressionParser {
 public:
     ExpressionParser(const std::string& expression);
 
-    const std::string& get_actions();
+    const std::string& get_actions() const;
 
 private:
     std::string m_actions;
@@ -79,7 +79,7 @@ class OperationCreate: public Operation {
     // [] holds unnecessary params
     // [] are also abscent in actual query
     public:
-    OperationCreate(const std::string& args);
+    OperationCreate(const std::vector<std::vector<std::string>>& args);
     Table execute() override;
 
     private:
@@ -87,7 +87,6 @@ class OperationCreate: public Operation {
     std::vector<std::vector<std::string>> col_attributes;
     std::vector<std::string> col_name;
     std::vector<std::string> col_type;
-    std::vector<int> col_sizeof;
     std::vector<std::string> col_default_value;
 };
 
@@ -95,57 +94,53 @@ class OperationInsert: public Operation {
     // insert (<values>) to <table>
     // values are pairs like <name> = <value>
     public:
-    OperationInsert(const std::string& args);
+    OperationInsert(const std::vector<std::vector<std::string>>& args);
     Table execute() override;
 
     private:
     std::string table_name;
-    std::vector<std::vector<std::string>> col_attributes;
     std::vector<std::string> col_name;
-    std::vector<std::string> col_type;
-    std::vector<int> col_sizeof;
-    std::vector<std::string> col_default_value;
+    std::vector<std::string> new_value;
 };
 
 class OperationSelect: public Operation {
     // select <columns> from <table> where <condition>
     public:
-    OperationSelect(const std::string& args);
+    OperationSelect(const std::vector<std::vector<std::string>>& args);
     Table execute() override;
 
     private:
     std::vector<std::string> column_names;
     std::string table_name;
-    // some type Condition (may be lambda)    
+    std::vector<std::pair<std::string, char>> m_condition;
 };
 
 class OperationUpdate : public Operation {
     // update <table> set <assignments> where <condition>
     public:
-    OperationUpdate(const std::string& args);
+    OperationUpdate(const std::vector<std::vector<std::string>>& args);
     Table execute() override;
 
     private:
     std::string table_name;
-    // Condition
-    // Assignments
+    std::vector<std::pair<std::string, char>> m_condition;
 };
 
 class OperationDelete : public Operation {
     // delete <table> where <condition>
     public:
-    OperationDelete(const std::string& args);
+    OperationDelete(const std::vector<std::vector<std::string>>& args);
     Table execute() override;
 
     private:
     std::string table_name; // single table
-    // Condition
+    std::vector<std::pair<std::string, char>> m_condition;
 };
 
 class OperationJoin : public Operation {
     // <table1> join <table2> on <condition>
     public:
-    OperationJoin(const std::string& args);
+    OperationJoin(const std::vector<std::vector<std::string>>& args);
     Table execute() override;
 
     private:
@@ -157,7 +152,7 @@ class OperationJoin : public Operation {
 class OperationOrderedIndex : public Operation {
     // create ordered index on <table> by <columns>
     public:
-    OperationOrderedIndex(const std::string& args);
+    OperationOrderedIndex(const std::vector<std::vector<std::string>>& args);
     Table execute() override;
     
 };
@@ -183,10 +178,10 @@ class Comb: public Operation {
 class Query {
     public:
     Query(const std::string& query);
-    std::shared_ptr<Operation> compile();
+    void compile();
 
     private:
-    std::vector<std::shared_ptr<Operation>> op;
+    std::vector<std::shared_ptr<Operation>> ops;
     std::vector<std::pair<std::vector<std::vector<std::string>>, char>> op_str;
 };
 

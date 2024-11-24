@@ -409,6 +409,8 @@ std::vector<std::pair<std::vector<std::vector<std::string>>, char>> get_keywords
                                 // It means columns has no attributes.
                                 params.push_back(single_type_params);
                                 single_type_params.clear();
+                            } else {
+                                params.push_back({});
                             }
                             skip_spaces(str, idx);
                             tmp = get_word(str, idx);
@@ -459,6 +461,9 @@ std::vector<std::pair<std::vector<std::vector<std::string>>, char>> get_keywords
                                 }
                                 single_type_params.push_back(tmp);
                                 skip_spaces(str, idx);
+                                params.push_back(single_type_params);
+                                single_type_params.clear();
+                            } else {
                                 params.push_back(single_type_params);
                                 single_type_params.clear();
                             }
@@ -826,11 +831,119 @@ std::vector<std::pair<std::vector<std::vector<std::string>>, char>> get_keywords
     return answer;
 }   
 
-OperationCreate::OperationCreate(const std::string& args) {
-    
+OperationCreate::OperationCreate(const std::vector<std::vector<std::string>>& args) {
+    int cnt = -1;
+    bool name_given = false;
+    for (const auto& operands : args) {
+        for (const auto& operand : operands) {
+            if (!name_given) {
+                table_name = operand;
+                name_given = true;
+            } else {
+                if (cnt%3 == 0) {
+                    col_attributes.push_back(operands);
+                    break;
+                } else if (cnt%3 == 1) {
+                    col_name.push_back(operand);
+                } else {
+                    if (operand == *(operands.begin())) {
+                        col_type.push_back(operand);
+                    } else {
+                        col_default_value.push_back(operand);
+                    }
+                }
+            }
+        }
+        if (cnt%3 == 0 && operands.size() == 0) {
+            col_attributes.push_back({});
+        }
+        if (cnt%3 == 2 && operands.size() == 1) {
+            col_default_value.push_back({});
+        }
+        cnt++;
+    }
+    // std::cout << "Col_names:" << std::endl;
+    // for (const auto& n : col_name) {
+    //     std::cout << n << std::endl;
+    // }
+    // std::cout << std::endl;
+    // std::cout << "Attribtues:" << std::endl;
+    // for (const auto& x : col_attributes) {
+    //     for (const auto& y: x) {
+    //         std::cout << y << ' ';
+    //     }
+    //     std::cout << std::endl;
+    // }
+    // std::cout << std::endl;
+
+    // std::cout << "Types" << std::endl;
+    // for (const auto& n : col_type) {
+    //     std::cout << n << std::endl;
+    // }
+    // std::cout << std::endl;
+    // std::cout << "Defaults to" << std::endl;
+    // for (const auto& n : col_default_value) {
+    //     std::cout << n << std::endl;
+    // }
+
 }
 
 Table OperationCreate::execute() {
+    Table a;
+    return a;
+}
+
+OperationInsert::OperationInsert(const std::vector<std::vector<std::string>>& args) {
+    table_name = args.back().front();
+    for (const auto& operands : args) {
+        if (operands == *(args.end() - 1)) {
+            break;
+        }
+        if (operands.size() != 2) {
+            std::cout << "Assignments in operation insert have to look like:" << std::endl
+                      << "<column_name> = <new_vakue>" << std::endl;
+            throw std::runtime_error("Wrong operation insert syntax.");
+        }
+        col_name.push_back(operands.front());
+        new_value.push_back(operands.back());
+    }
+    std::cout << "Have to insert" << std::endl;
+    for (size_t i = 0; i < col_name.size(); i++) {
+        std::cout << col_name[i] << " = " << new_value[i] << std::endl;
+    }
+    std::cout << std::endl << "In table: " << table_name;
+
+}
+
+Table OperationInsert::execute() {
+    Table a;
+    return a;
+}
+
+OperationDelete::OperationDelete(const std::vector<std::vector<std::string>>& args) {
+    
+}
+
+Table OperationDelete::execute() {
+    Table a;
+    return a;
+
+}
+
+OperationUpdate::OperationUpdate(const std::vector<std::vector<std::string>>& args) {
+
+}
+
+Table OperationUpdate::execute() {
+    Table a;
+    return a;
+}
+
+OperationSelect::OperationSelect(const std::vector<std::vector<std::string>>& args) {
+
+}
+
+Table OperationSelect::execute() {
     Table a;
     return a;
 }
@@ -839,14 +952,59 @@ Query::Query(const std::string& str) {
     size_t idx = 0;
     std::string command;
     op_str = get_keywords(str, idx);
-    for (auto& [j, t] : op_str) {
-        std::cout << "Operation type = " << static_cast<int>(t) << std::endl;
-        for (auto& k : j) {
-            for (auto& a : k) {
-                std::cout << a << ' ';
+    compile();
+    // for (auto& [j, t] : op_str) {
+    //     std::cout << "Operation type = " << static_cast<int>(t) << std::endl;
+    //     for (auto& k : j) {
+    //         for (auto& a : k) {
+    //             std::cout << a << ' ';
+    //         }
+    //         std::cout << std::endl;
+    //     }
+    //     std::cout << std::endl;
+    // }
+}
+
+void Query::compile() {
+    std::shared_ptr<Operation> tmp;
+    for (const auto &operations : op_str) {
+        switch (operations.second) {
+            case CREATE_TABLE: {
+                tmp = std::make_shared<OperationCreate>(OperationCreate(operations.first));
+                break;
             }
-            std::cout << std::endl;
+            case INSERT: {
+                tmp = std::make_shared<OperationInsert>(OperationInsert(operations.first));
+                break;
+            }
+            case SELECT: {
+                tmp = std::make_shared<OperationSelect>(OperationSelect(operations.first));
+                break;
+            }
+            case UPDATE: {
+                tmp = std::make_shared<OperationUpdate>(OperationUpdate(operations.first));
+                break;
+            }
+            case DELETE: {
+                tmp = std::make_shared<OperationDelete>(OperationDelete(operations.first));
+                break;
+            }
+            /*
+            case JOIN {
+                
+                break;
+            }
+            case CREATE_U_INDEX {
+            
+                break;
+            }
+            case CREATE_O_INDEX {
+            
+                break;
+            }
+            */
         }
-        std::cout << std::endl;
+        ops.push_back(tmp);
     }
+    return;
 }
