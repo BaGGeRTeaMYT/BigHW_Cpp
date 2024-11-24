@@ -17,7 +17,10 @@ public:
 
     void add_table( table_pointer table );
     void remove_table( std::string name );
-    table_pointer get_table( std::string name );
+    std::string get_name( void ) const;
+    table_container::const_iterator find_table( const std::string& name ) const;
+    table_pointer get_table( std::string name ) const;
+    const table_container& get_all_tables( void ) const;
     
 private:
 
