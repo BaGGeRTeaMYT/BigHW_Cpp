@@ -2,6 +2,7 @@
 #define DatabaseHEADER
 
 #include <map>
+#include <map>
 #include <fstream>
 #include <memory>
 #include <string>
@@ -10,9 +11,13 @@
 typedef std::shared_ptr<Table> table_pointer;
 typedef std::map<std::string, std::shared_ptr<Table>> table_container;
 
+typedef std::shared_ptr<Table> table_pointer;
+typedef std::map<std::string, std::shared_ptr<Table>> table_container;
+
 class Database {
 public:
 
+    Database( std::string name );
     Database( std::string name );
 
     void add_table( table_pointer table );
@@ -25,6 +30,7 @@ public:
 private:
 
     std::string m_name;
+    table_container m_tables;
     table_container m_tables;
 
 };
