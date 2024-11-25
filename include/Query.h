@@ -50,12 +50,12 @@ public:
     ExpressionParser(const std::string& expression);
 
     const std::string& get_actions() const;
+    std::vector<Token> tokenize(const std::string& expression);
 
 private:
     std::string m_actions;
 
     // @brief Function to tokenize the input expression
-    std::vector<Token> tokenize(const std::string& expression);
 
     // @brief Function to get the precedence of operators
     int getPrecedence(const std::string& op);
@@ -112,7 +112,7 @@ class OperationSelect: public Operation {
     private:
     std::vector<std::string> column_names;
     std::string table_name;
-    std::vector<std::pair<std::string, char>> m_condition;
+    std::vector<Token> m_condition;
 };
 
 class OperationUpdate : public Operation {
@@ -123,7 +123,10 @@ class OperationUpdate : public Operation {
 
     private:
     std::string table_name;
-    std::vector<std::pair<std::string, char>> m_condition;
+    std::vector<std::string> m_cols_to_assign;
+    std::vector<std::vector<Token>> m_assignments;
+    std::vector<Token> m_condition;
+
 };
 
 class OperationDelete : public Operation {
@@ -134,7 +137,7 @@ class OperationDelete : public Operation {
 
     private:
     std::string table_name; // single table
-    std::vector<std::pair<std::string, char>> m_condition;
+    std::vector<Token> m_condition;
 };
 
 class OperationJoin : public Operation {

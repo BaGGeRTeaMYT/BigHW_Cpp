@@ -1,15 +1,24 @@
 #include <Column.h>
 
-Column::Column( column_name name, cell_type type, int length, attribute unique, attribute autoincrement, attribute key ): m_name(name), m_type(type), m_cells(0), m_length(length),
-                                                                                                            m_attributes({unique, autoincrement, key}),
-                                                                                                            m_string_index({}),
-                                                                                                            m_bytes_index({}),
-                                                                                                            m_bool_index({}),
-                                                                                                            m_int_index({}) {
+Column::Column( column_name name,
+                cell_type type,
+                int length,
+                attribute unique,
+                attribute autoincrement,
+                attribute key ):
+                m_name(name),
+                m_type(type),
+                m_cells({}),
+                m_length(length),
+                m_attributes({unique, autoincrement, key}),
+                m_string_index({}),
+                m_bytes_index({}),
+                m_bool_index({}),
+                m_int_index({}) {
     if (key) {
         m_attributes.unique = true;
     }
-    if (autoincrement and type != INT32_TYPE) {
+    if (autoincrement && type != INT32_TYPE) {
         throw std::runtime_error("Can\'t create non intager autoincrement column\n");
     }
 }

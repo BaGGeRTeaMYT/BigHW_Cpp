@@ -83,10 +83,10 @@ int ExpressionParser::getPrecedence(const std::string& op) {
 
 bool ExpressionParser::isValidOperation(const std::string& op, const TokenType& leftType, const TokenType& rightType) {
     if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
-        return (leftType == TokenType::INT32 && rightType == TokenType::INT32) ||
-               (leftType == TokenType::VARIABLE && rightType == TokenType::INT32) ||
-               (leftType == TokenType::INT32 && rightType == TokenType::VARIABLE) ||
-               (leftType == TokenType::VARIABLE && rightType == TokenType::VARIABLE);
+        return ((leftType == TokenType::INT32 || leftType == TokenType::VARIABLE) &&
+               (rightType == TokenType::INT32 || rightType == TokenType::VARIABLE)) ||
+               ((leftType == TokenType::STRING || leftType == TokenType::VARIABLE) &&
+               (rightType == TokenType::STRING || rightType == TokenType::VARIABLE));
     }
     if (op == "<" || op == ">" || op == "=" || op == "<=" || op == ">=" || op == "!=") {
         return leftType == rightType ||
@@ -633,7 +633,7 @@ std::vector<std::pair<std::vector<std::vector<std::string>>, char>> get_keywords
                                     std::cout << "Missing closing quote in string literal" << std::endl;
                                     throw std::runtime_error("Missing closing quote in string literal");
                                 }
-                                tmp += "\"" + read_until<'\"'>(str, idx) + "\"";
+                                tmp += "\"" + read_until<'\"'>(str, idx) + "\"" + " ";
                                 idx++;
                                 if (idx == str.size()) {
                                     std::cout << "Unfinished operation update" << std::endl;
@@ -650,13 +650,13 @@ std::vector<std::pair<std::vector<std::vector<std::string>>, char>> get_keywords
                                     skip_spaces(str, idx);
                                     break;
                                 }
-                                tmp += get_word(str, idx);
+                                tmp += get_word(str, idx) + " ";
                                 skip_spaces(str, idx);
                             }
                             if (str[idx] == ',') {
-                                single_type_params.push_back(tmp);
-                                params.push_back(single_type_params);
-                                single_type_params.clear();
+                                idx++;
+                                skip_spaces(str, idx);
+                                break;
                             }
                         }
                         single_type_params.push_back(tmp);
@@ -890,7 +890,7 @@ OperationCreate::OperationCreate(const std::vector<std::vector<std::string>>& ar
 
 Table OperationCreate::execute() {
     // Table a;
-    Table a("mom");
+    Table a("dummy_name");
     return a;
 }
 
@@ -917,36 +917,91 @@ OperationInsert::OperationInsert(const std::vector<std::vector<std::string>>& ar
 }
 
 Table OperationInsert::execute() {
-    Table a;
-    return a;
-}
-
-OperationDelete::OperationDelete(const std::vector<std::vector<std::string>>& args) {
-    
-}
-
-Table OperationDelete::execute() {
-    Table a;
-    return a;
-
-}
-
-OperationUpdate::OperationUpdate(const std::vector<std::vector<std::string>>& args) {
-
-}
-
-Table OperationUpdate::execute() {
-    Table a;
+    Table a("dummy_name");
     return a;
 }
 
 OperationSelect::OperationSelect(const std::vector<std::vector<std::string>>& args) {
-
-}
+    std::cout << "Columns to select:" << std::endl;
+    for (const auto& col_name : args[0]) {
+        column_names.push_back(col_name);
+        std::cout << col_name << ' ';
+    }
+    table_name = args[1][0];
+    std::cout << std::endl << std::endl << "From table: " << std::endl << table_name << std::endl;
+    std::cout << std::endl << "If condition met: " << std::endl;
+    auto conditions = ExpressionParser(args[2][0]);
+    m_condition = conditions.tokenize(conditions.get_actions());
+    for (const auto &single_token : m_condition) {
+        std::cout << "Expression " << single_token.value << " of type " << (int)single_token.type << std::endl;
+    }
+    std::cout << std::endl;
+    
+}   
 
 Table OperationSelect::execute() {
-    Table a;
+    Table a("dummy_name");
     return a;
+}
+
+OperationUpdate::OperationUpdate(const std::vector<std::vector<std::string>>& args) {
+    bool name_given = false;
+    for (const auto& operations : args) {
+        if (!name_given) {
+            table_name = operations[0];
+            name_given = true;
+        } else if (operations.size() > 1) {
+            m_cols_to_assign.push_back(operations[0]);
+            ExpressionParser polish_expr(operations[1]);
+            m_assignments.push_back(polish_expr.tokenize(polish_expr.get_actions()));
+        } else {
+            ExpressionParser polish_expr(operations[0]);
+            m_condition = polish_expr.tokenize(polish_expr.get_actions());
+        }
+    }
+    
+    for (int i = 0; i < m_assignments.size(); i++) {
+        std::cout << "Assign to column " << m_cols_to_assign[i] << " expression: " << std::endl; 
+        for (int j = 0; j < m_assignments[i].size(); j++) {
+            std::cout << m_assignments[i][j].value << std::endl;
+        }
+        std::cout << std::endl;
+    }
+    std::cout << "If met condition:" << std::endl;
+    for (int i = 0; i < m_condition.size(); i++) {
+        std::cout << m_condition[i].value << " ";
+    }
+    std::cout << std::endl;
+}
+
+Table OperationUpdate::execute() {
+    Table a("dummy_name");
+    return a;
+}
+
+OperationDelete::OperationDelete(const std::vector<std::vector<std::string>>& args) {
+    bool name_given = false;
+    for (const auto& operations : args) {
+        if (!name_given) {
+            table_name = operations[0];
+            name_given = true;
+        } else {
+            ExpressionParser polish_expr(operations[0]);
+            m_condition = polish_expr.tokenize(polish_expr.get_actions());
+        }
+    }
+    std::cout << "Delete row from table: " << table_name << std::endl;
+    std::cout << "If met condition:" << std::endl;
+    for (int i = 0; i < m_condition.size(); i++) {
+        std::cout << m_condition[i].value << " ";
+    }
+    std::cout << std::endl;
+}
+
+Table OperationDelete::execute() {
+    Table a("dummy_name");
+    return a;
+
 }
 
 Query::Query(const std::string& str) {

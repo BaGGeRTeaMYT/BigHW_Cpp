@@ -18,7 +18,6 @@ class Database {
 public:
 
     Database( std::string name );
-    Database( std::string name );
 
     void add_table( table_pointer table );
     void remove_table( std::string name );
@@ -30,7 +29,6 @@ public:
 private:
 
     std::string m_name;
-    table_container m_tables;
     table_container m_tables;
 
 };
