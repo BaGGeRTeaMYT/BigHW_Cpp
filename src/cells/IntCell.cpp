@@ -6,7 +6,7 @@ IntCell::IntCell( void ): Cell(true, INT32_TYPE), m_value(0) {
 IntCell::IntCell( int value ): Cell(false, INT32_TYPE), m_value(value) {
 }
 
-cell_type IntCell::get_type( void ) const {
+const cell_type IntCell::get_type( void ) const {
     return m_type;
 }
 

@@ -902,19 +902,24 @@ void OperationCreate::execute( Database& db ) {
     std::shared_ptr<Table> table = std::shared_ptr<Table>(new Table(table_name));
     for (int i = 0; i < col_name.size(); ++i) {
         int len = -1;
-        if (col_type[i] != "int32" || col_type[i] != "bool") {
+        if (col_type[i] != "int32" && col_type[i] != "bool") {
             std::regex numberRegex("\\[(\\d+)\\]");
             std::string::const_iterator searchStart(col_type[i].cbegin());
             std::smatch match;
             std::regex_search(searchStart, col_type[i].cend(), match, numberRegex);
-            len = std::stoi(match.str());
+            // std::cout << match.str() << std::endl;
+            len = std::stoi(match.str().substr(1, match.str().size() - 2));
         }
 
         struct attr {
             bool unique;
             bool autoincrement;
             bool key;
-        } tmp_attr({0, 0, 0});
+        } tmp_attr;
+        tmp_attr.unique = false;
+        tmp_attr.autoincrement = false;
+        tmp_attr.key = false;
+
 
         for (auto s: col_attributes[i]) {
             if (s == "unique") {
@@ -939,32 +944,35 @@ void OperationCreate::execute( Database& db ) {
         else if (col_type[i] == "bool") {
             tmp_type = BOOL_TYPE;
         }
-        else if (col_type[i] == 's') {
+        else if (col_type[i][0] == 's') {
             tmp_type = STRING_TYPE;
         }
-        else if (col_type[i] == 'b') {
+        else if (col_type[i][0] == 'b') {
             tmp_type = BYTES_TYPE;
         }
         else {
             throw std::runtime_error("Trying to create column with invalid column type\n");
         }
 
-        std::shared_ptr<Column> col = std::shared_ptr<Column>(new Column(col_name[i]
-                                                                        tmp_type
-                                                                        len
-                                                                        tmp_attr.unique
-                                                                        tmp_attr.autoincrement
+        std::shared_ptr<Column> col = std::make_shared<Column>(Column(col_name[i],
+                                                                        tmp_type,
+                                                                        len,
+                                                                        tmp_attr.unique,
+                                                                        tmp_attr.autoincrement,
                                                                         tmp_attr.key));
         switch (tmp_type) {
             case INT32_TYPE:
+            {
                 std::string def_val = col_default_value[i];
                 int tmp_digit_cnt = std::count_if(def_val.begin(), def_val.end(), [](unsigned char c){ return std::isdigit(c); });
-                if (tmp_digit_cnt != def_val) {
+                if (tmp_digit_cnt != def_val.size()) {
                     throw std::runtime_error("Trying to pass non-int default value to int column\n");
                 }
                 col->set_defualt_value(std::stoi(def_val));
                 break;
+            }
             case BOOL_TYPE:
+            {
                 std::string bool_val = col_default_value[i];
                 if (bool_val == "true") {
                     col->set_defualt_value(true);
@@ -972,23 +980,30 @@ void OperationCreate::execute( Database& db ) {
                 else if (bool_val == "false") {
                     col->set_defualt_value(false);
                 }
+                else if (bool_val.size() == 0) {
+                    col->set_defualt_value(false);
+                }
                 else {
-                    throw runtime_error("Trying to pass non-bool default value to bool column\n");
+                    throw std::runtime_error("Trying to pass non-bool default value to bool column\n");
                 }
                 break;
+            }
             case STRING_TYPE:
+            {
                 std::string str_val = col_default_value[i];
                 if (str_val[0] != '\"' || str_val.back() != '\"') {
                     throw std::runtime_error("String default value is incomplete\n");
                 }
                 col->set_defualt_value(str_val.substr(1, str_val.size() - 2));
                 break;
+            }
             case BYTES_TYPE:
+            {
                 std::string byte_val = col_default_value[i];
                 if (byte_val[0] != '0' || byte_val[1] != 'x') {
                     throw std::runtime_error("Trying to pass non-hex default number to bytes column\n");
                 }
-                std::shared_ptr<bytes> tmp_bytes = std::shared_ptr<bytes>(new vector<bytes>(0));
+                std::shared_ptr<bytes> tmp_bytes = std::make_shared<bytes>(bytes(0));
                 unsigned int i;
                 for (i = byte_val.size() - 1; i >= 2; i--) {
                     char result = byte_checker(byte_val[i]);
@@ -1005,10 +1020,10 @@ void OperationCreate::execute( Database& db ) {
                         throw std::runtime_error("Incorrect symbol in bytes[X] literal.\n");    
                     }
                     value += (byte_val[i] - ((result == 1) ? '0' : 'a'));
-                    tmp_bytes->push_back(value);
+                    tmp_bytes->push_back(std::byte(value));
                 }
                 // if byte_val.size() is odd
-                if (i > 0) {
+                if (byte_val.size()%2) {
                     char result = byte_checker(byte_val[2]);
                     unsigned char value = 0;
                     if (result == 0) {
@@ -1016,16 +1031,19 @@ void OperationCreate::execute( Database& db ) {
                         throw std::runtime_error("Incorrect symbol in bytes[X] literal.\n");
                     }
                     value += (byte_val[i] - ((result == 1) ? '0' : 'a'));
-                    tmp_bytes->push_back(value);
+                    tmp_bytes->push_back(std::byte(value));
                 }
                 col->set_defualt_value(tmp_bytes);
                 break;
+            }
             default:
+            {
                 throw std::runtime_error("Something happened to column type\n");
                 break;
+            }
         }
     }
-    add_table(table);
+    db.add_table(table);
 }
 
 OperationInsert::OperationInsert(const std::vector<std::vector<std::string>>& args) {
@@ -1050,9 +1068,8 @@ OperationInsert::OperationInsert(const std::vector<std::vector<std::string>>& ar
 
 }
 
-Table OperationInsert::execute() {
+void OperationInsert::execute( Database& db ) {
     Table a("dummy_name");
-    return a;
 }
 
 OperationSelect::OperationSelect(const std::vector<std::vector<std::string>>& args) {
@@ -1073,9 +1090,8 @@ OperationSelect::OperationSelect(const std::vector<std::vector<std::string>>& ar
     
 }   
 
-Table OperationSelect::execute() {
+void OperationSelect::execute(Database& db) {
     Table a("dummy_name");
-    return a;
 }
 
 OperationUpdate::OperationUpdate(const std::vector<std::vector<std::string>>& args) {
@@ -1108,9 +1124,8 @@ OperationUpdate::OperationUpdate(const std::vector<std::vector<std::string>>& ar
     std::cout << std::endl;
 }
 
-Table OperationUpdate::execute() {
+void OperationUpdate::execute( Database& db ) {
     Table a("dummy_name");
-    return a;
 }
 
 OperationDelete::OperationDelete(const std::vector<std::vector<std::string>>& args) {
@@ -1132,10 +1147,8 @@ OperationDelete::OperationDelete(const std::vector<std::vector<std::string>>& ar
     std::cout << std::endl;
 }
 
-Table OperationDelete::execute() {
+void OperationDelete::execute(Database& db) {
     Table a("dummy_name");
-    return a;
-
 }
 
 Query::Query(const std::string& str) {

@@ -31,11 +31,11 @@ public:
     void add_cell( cell_pointer cell = nullptr );
     void remove_cell( int position );
 
-    [[nodiscard, noexcept]] column_name get_name( void ) const;
+    [[nodiscard]] column_name get_name( void ) const;
     [[nodiscard]] cell_pointer& get_cell( int position );
-    [[nodiscard, noexcept]] const std::vector<cell_pointer>& get_all_cells( void ) const;
-    [[nodiscard, noexcept]] size_t get_size( void ) const;
-    [[nodiscard, noexcept]] attributes& get_attributes( void ) const;
+    [[nodiscard]] const std::vector<cell_pointer>& get_all_cells( void ) const;
+    [[nodiscard]] size_t get_size( void ) const;
+    [[nodiscard]] attributes& get_attributes( void ) const;
 
 private:
 
@@ -48,12 +48,11 @@ private:
     std::set<bool> m_bool_index;
     std::set<int> m_int_index;
 
-    union m_default_values {
-        int m_int_value;
-        bool m_bool_value;
-        std::string m_string_value;
-        std::shared_ptr<bytes> m_bytes_value;
-    };
+    
+    int m_int_value;
+    bool m_bool_value;
+    std::string m_string_value;
+    std::shared_ptr<bytes> m_bytes_value;
     
     int m_length;
     

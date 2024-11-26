@@ -14,6 +14,9 @@
 #include <regex>
 #include <cctype>
 #include <algorithm>
+#include <cstddef>
+
+class Database;
 
 enum OP_TYPE {
     CREATE_TABLE = 0,

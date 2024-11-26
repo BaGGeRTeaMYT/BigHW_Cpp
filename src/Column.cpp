@@ -10,12 +10,7 @@ Column::Column( column_name name,
                 m_type(type),
                 m_cells({}),
                 m_length(length),
-                m_attributes({unique, autoincrement, key}),
-                m_string_index({}),
-                m_bytes_index({}),
-                m_bool_index({}),
-                m_int_index({}),
-                m_default_values({}) {
+                m_attributes({unique, autoincrement, key}) {
     if (key) {
         m_attributes.unique = true;
     }
@@ -155,14 +150,14 @@ void Column::set_defualt_value( int value ) {
     if (m_type != INT32_TYPE) {
         throw std::runtime_error("Trying to set default int value to non-int column \n");
     }
-    m_default_values.m_int_index = value;
+    m_int_value = value;
 }
 
 void Column::set_defualt_value( bool value ) {
     if (m_type != BOOL_TYPE) {
         throw std::runtime_error("Trying to set default bool value to non-bool column \n");
     }
-    m_default_values.m_bool_index = value;
+    m_bool_value = value;
 }
 
 void Column::set_defualt_value( const std::string& value ) {
@@ -172,7 +167,7 @@ void Column::set_defualt_value( const std::string& value ) {
     if (value.size() != m_length) {
         throw std::runtime_error("Trying to set default string value to invalid length string\n");
     }
-    m_default_values.m_string_index = value;
+    m_string_value = value;
 }
 
 void Column::set_defualt_value( std::shared_ptr<bytes> value ) {
@@ -182,5 +177,5 @@ void Column::set_defualt_value( std::shared_ptr<bytes> value ) {
     if (value->size() > m_length) {
         throw std::runtime_error("Trying to set default bytes value to invalid length bytes\n");
     }
-    m_default_values.m_bytes_index = value;
+    m_bytes_value = value;
 }

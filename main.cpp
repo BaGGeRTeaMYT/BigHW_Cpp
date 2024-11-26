@@ -1,21 +1,20 @@
 #include <iostream>
-#include <Query.h>
-#include <Table.h>
+#include <Database.h>
 
 int main() {
     // should begin with create table
-    Query create_test = Query(
-        std::string(
+    Database db("Uzbek");
+    db.execute(std::string(
             
-            // "create tABle table_name"
-            //     "("
-            //     "{attr1, attr2,attr3}"
-            //     "col1 : int32 = 31,"
-            //     "{attr2,attr3}  "
-            //     "col2: bytes[2] = 0x1234,"
-            //     "{} col3    : bool = true,"
-            //     "col4    : bool"
-            // ");"
+            "create tABle table_name"
+                "("
+                "{key, autoincrement}"
+                "col1 : int32 = 31,"
+                "{unique}  "
+                "col2: bytes[2] = 0x1234,"
+                "{} col3    : bool = true,"
+                "col4    : bool"
+            ");"
             
             // "iNsErt ("
             //     "col1= 123,"
@@ -32,14 +31,19 @@ int main() {
             // "col3 = \"uzbeki power\" + col3 "
             // "WHeRE col2 < 0x0500;"
             
-            "DELETE table_name "
-            "where col = 321 && col2 = 0x0456;"
+            // "DELETE table_name "
+            // "where col = 321 && col2 = 0x0456;"
         ));
+
+    for (const auto &[k, v] : db.get_all_tables()) {
+        std::cout << k << std::endl;
+    }
 
     // new tests required
 
     // Table a("asd");
     // a.get_all_columns();
+
 
     return 0;
 }

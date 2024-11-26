@@ -19,5 +19,6 @@ add_executable(Main
             src/cells/BytesCell.cpp
             src/cells/StringCell.cpp
             src/Column.cpp
-            src/Table.cpp)
+            src/Table.cpp
+            src/Database.cpp)
 # target_link_libraries(Main PRIVATE not_sql)

@@ -32,7 +32,7 @@ table_container::const_iterator Database::find_table( const std::string& name) c
     return m_tables.find(name);
 }
 
-void Databse::execute( std::string query ) {
+void Database::execute( std::string query ) {
     Query q(query);
     auto ops = q.get_ops();
     for (auto i: ops) {
