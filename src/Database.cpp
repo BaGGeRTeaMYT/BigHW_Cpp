@@ -31,3 +31,16 @@ table_pointer Database::get_table( std::string name ) const {
 table_container::const_iterator Database::find_table( const std::string& name) const {
     return m_tables.find(name);
 }
+
+void Databse::execute( std::string query ) {
+    Query q(query);
+    auto ops = q.get_ops();
+    for (auto i: ops) {
+        if (std::dynamic_pointer_cast<OperationCreate>(i) != nullptr) {
+            std::shared_ptr<OperationCreate> tmp = std::dynamic_pointer_cast<OperationCreate>(i);
+            tmp->execute(*this);
+        } else {
+            /* nothing here yet */
+        }
+    }
+}

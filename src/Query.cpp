@@ -888,10 +888,144 @@ OperationCreate::OperationCreate(const std::vector<std::vector<std::string>>& ar
 
 }
 
-Table OperationCreate::execute() {
-    // Table a;
-    Table a("dummy_name");
-    return a;
+char byte_checker(char sym) {
+    if (isdigit(sym)) {
+        return 1;
+    }
+    if (('a' <= sym <= 'f') || ('A' <= sym <= 'F')) {
+        return 2;
+    }
+    return 0; 
+}
+
+void OperationCreate::execute( Database& db ) {
+    std::shared_ptr<Table> table = std::shared_ptr<Table>(new Table(table_name));
+    for (int i = 0; i < col_name.size(); ++i) {
+        int len = -1;
+        if (col_type[i] != "int32" || col_type[i] != "bool") {
+            std::regex numberRegex("\\[(\\d+)\\]");
+            std::string::const_iterator searchStart(col_type[i].cbegin());
+            std::smatch match;
+            std::regex_search(searchStart, col_type[i].cend(), match, numberRegex);
+            len = std::stoi(match.str());
+        }
+
+        struct attr {
+            bool unique;
+            bool autoincrement;
+            bool key;
+        } tmp_attr({0, 0, 0});
+
+        for (auto s: col_attributes[i]) {
+            if (s == "unique") {
+                tmp_attr.unique = true;
+            }
+            else if (s == "autoincrement") {
+                tmp_attr.autoincrement = true;
+            }
+            else if (s == "key") {
+                tmp_attr.key = true;
+            }
+            else {
+                throw std::runtime_error("Trying to create column with invalid attribute");
+            }
+        }
+
+        cell_type tmp_type = -1;
+
+        if (col_type[i] == "int32") {
+            tmp_type = INT32_TYPE;
+        }
+        else if (col_type[i] == "bool") {
+            tmp_type = BOOL_TYPE;
+        }
+        else if (col_type[i] == 's') {
+            tmp_type = STRING_TYPE;
+        }
+        else if (col_type[i] == 'b') {
+            tmp_type = BYTES_TYPE;
+        }
+        else {
+            throw std::runtime_error("Trying to create column with invalid column type\n");
+        }
+
+        std::shared_ptr<Column> col = std::shared_ptr<Column>(new Column(col_name[i]
+                                                                        tmp_type
+                                                                        len
+                                                                        tmp_attr.unique
+                                                                        tmp_attr.autoincrement
+                                                                        tmp_attr.key));
+        switch (tmp_type) {
+            case INT32_TYPE:
+                std::string def_val = col_default_value[i];
+                int tmp_digit_cnt = std::count_if(def_val.begin(), def_val.end(), [](unsigned char c){ return std::isdigit(c); });
+                if (tmp_digit_cnt != def_val) {
+                    throw std::runtime_error("Trying to pass non-int default value to int column\n");
+                }
+                col->set_defualt_value(std::stoi(def_val));
+                break;
+            case BOOL_TYPE:
+                std::string bool_val = col_default_value[i];
+                if (bool_val == "true") {
+                    col->set_defualt_value(true);
+                }
+                else if (bool_val == "false") {
+                    col->set_defualt_value(false);
+                }
+                else {
+                    throw runtime_error("Trying to pass non-bool default value to bool column\n");
+                }
+                break;
+            case STRING_TYPE:
+                std::string str_val = col_default_value[i];
+                if (str_val[0] != '\"' || str_val.back() != '\"') {
+                    throw std::runtime_error("String default value is incomplete\n");
+                }
+                col->set_defualt_value(str_val.substr(1, str_val.size() - 2));
+                break;
+            case BYTES_TYPE:
+                std::string byte_val = col_default_value[i];
+                if (byte_val[0] != '0' || byte_val[1] != 'x') {
+                    throw std::runtime_error("Trying to pass non-hex default number to bytes column\n");
+                }
+                std::shared_ptr<bytes> tmp_bytes = std::shared_ptr<bytes>(new vector<bytes>(0));
+                unsigned int i;
+                for (i = byte_val.size() - 1; i >= 2; i--) {
+                    char result = byte_checker(byte_val[i]);
+                    unsigned char value = 0;
+                    if (result == 0) {
+                        std::cout << "Incorrect symbol in bytes[X] literal: " << byte_val[i] << std::endl;
+                        throw std::runtime_error("Incorrect symbol in bytes[X] literal.\n");
+                    }
+                    value += (byte_val[i] - ((result == 1) ? '0' : 'a')) << 4;
+                    i--;
+                    result = byte_checker(byte_val[i]);
+                    if (result == 0) {
+                        std::cout << "Incorrect symbol in bytes[X] literal: " << byte_val[i] << std::endl;
+                        throw std::runtime_error("Incorrect symbol in bytes[X] literal.\n");    
+                    }
+                    value += (byte_val[i] - ((result == 1) ? '0' : 'a'));
+                    tmp_bytes->push_back(value);
+                }
+                // if byte_val.size() is odd
+                if (i > 0) {
+                    char result = byte_checker(byte_val[2]);
+                    unsigned char value = 0;
+                    if (result == 0) {
+                        std::cout << "Incorrect symbol in bytes[X] literal: " << byte_val[i] << std::endl;
+                        throw std::runtime_error("Incorrect symbol in bytes[X] literal.\n");
+                    }
+                    value += (byte_val[i] - ((result == 1) ? '0' : 'a'));
+                    tmp_bytes->push_back(value);
+                }
+                col->set_defualt_value(tmp_bytes);
+                break;
+            default:
+                throw std::runtime_error("Something happened to column type\n");
+                break;
+        }
+    }
+    add_table(table);
 }
 
 OperationInsert::OperationInsert(const std::vector<std::vector<std::string>>& args) {
@@ -1063,4 +1197,8 @@ void Query::compile() {
         ops.push_back(tmp);
     }
     return;
+}
+
+const std::vector<std::shared_ptr<Operation>>& Query::get_ops() const {
+    return ops;
 }

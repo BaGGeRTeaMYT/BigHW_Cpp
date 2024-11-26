@@ -23,6 +23,11 @@ public:
     Column( column_name name, cell_type type, int length = -1, 
         attribute unique = 0, attribute autoincrement = 0, attribute key = 0 );
 
+    void set_defualt_value( int value );
+    void set_defualt_value( bool value );
+    void set_defualt_value( const std::string& value );
+    void set_defualt_value( std::shared_ptr<bytes> value );
+
     void add_cell( cell_pointer cell = nullptr );
     void remove_cell( int position );
 
@@ -42,6 +47,13 @@ private:
     std::set<bytes> m_bytes_index;
     std::set<bool> m_bool_index;
     std::set<int> m_int_index;
+
+    union m_default_values {
+        int m_int_value;
+        bool m_bool_value;
+        std::string m_string_value;
+        std::shared_ptr<bytes> m_bytes_value;
+    };
     
     int m_length;
     

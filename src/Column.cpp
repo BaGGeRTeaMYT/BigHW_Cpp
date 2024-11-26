@@ -14,7 +14,8 @@ Column::Column( column_name name,
                 m_string_index({}),
                 m_bytes_index({}),
                 m_bool_index({}),
-                m_int_index({}) {
+                m_int_index({}),
+                m_default_values({}) {
     if (key) {
         m_attributes.unique = true;
     }
@@ -148,4 +149,38 @@ const std::vector<cell_pointer>& Column::get_all_cells( void ) const {
 
 size_t Column::get_size( void ) const {
     return m_cells.size();
+}
+
+void Column::set_defualt_value( int value ) {
+    if (m_type != INT32_TYPE) {
+        throw std::runtime_error("Trying to set default int value to non-int column \n");
+    }
+    m_default_values.m_int_index = value;
+}
+
+void Column::set_defualt_value( bool value ) {
+    if (m_type != BOOL_TYPE) {
+        throw std::runtime_error("Trying to set default bool value to non-bool column \n");
+    }
+    m_default_values.m_bool_index = value;
+}
+
+void Column::set_defualt_value( const std::string& value ) {
+    if (m_type != STRING_TYPE) {
+        throw std::runtime_error("Trying to set default string value to non-string column \n");
+    }
+    if (value.size() != m_length) {
+        throw std::runtime_error("Trying to set default string value to invalid length string\n");
+    }
+    m_default_values.m_string_index = value;
+}
+
+void Column::set_defualt_value( std::shared_ptr<bytes> value ) {
+    if (m_type != BYTES_TYPE) {
+        throw std::runtime_error("Trying to set default bytes value to non-bytes column \n");
+    }
+    if (value->size() > m_length) {
+        throw std::runtime_error("Trying to set default bytes value to invalid length bytes\n");
+    }
+    m_default_values.m_bytes_index = value;
 }
