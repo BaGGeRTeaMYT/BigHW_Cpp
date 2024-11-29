@@ -39,6 +39,18 @@ void Database::execute( std::string query ) {
         if (std::dynamic_pointer_cast<OperationCreate>(i) != nullptr) {
             std::shared_ptr<OperationCreate> tmp = std::dynamic_pointer_cast<OperationCreate>(i);
             tmp->execute(*this);
+        } else if (std::dynamic_pointer_cast<OperationInsert>(i) != nullptr){
+            std::shared_ptr<OperationInsert> tmp = std::dynamic_pointer_cast<OperationInsert>(i);
+            tmp->execute(*this);
+        } else if (std::dynamic_pointer_cast<OperationDelete>(i) != nullptr){
+            std::shared_ptr<OperationDelete> tmp = std::dynamic_pointer_cast<OperationDelete>(i);
+            tmp->execute(*this);
+        } else if (std::dynamic_pointer_cast<OperationSelect>(i) != nullptr){
+            std::shared_ptr<OperationSelect> tmp = std::dynamic_pointer_cast<OperationSelect>(i);
+            tmp->execute(*this);
+        } else if (std::dynamic_pointer_cast<OperationJoin>(i) != nullptr){
+            std::shared_ptr<OperationJoin> tmp = std::dynamic_pointer_cast<OperationJoin>(i);
+            tmp->execute(*this);
         } else {
             /* nothing here yet */
         }

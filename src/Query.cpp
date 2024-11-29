@@ -1095,8 +1095,23 @@ void OperationInsert::execute( Database& db ) {
         if (static_cast<char>(cur_token[0].type) != cur_column->get_type()) {
             throw std::runtime_error((std::string("Mismatched types of column and value in ") + std::to_string(i) + std::string(" row of insert\n")).c_str());
         }
+        switch (cur_column->get_type()) {
+            case INT32_TYPE:
+                table->get_column(col_name[i])->add_cell(std::make_shared<Cell>(IntCell()));
+                break;
+            case BOOL_TYPE:
+                table->get_column(col_name[i])->add_cell(std::make_shared<Cell>(BoolCell()));
+                break;
+            case STRING_TYPE:
+                table->get_column(col_name[i])->add_cell(std::make_shared<Cell>(StringCell()));
+                break;
+            case BYTES_TYPE:
+                table->get_column(col_name[i])->add_cell(std::make_shared<Cell>(BytesCell()));
+                break;
+            default:
+                throw std::runtime_error("Current column type is invalid\n");
+        }
     }
-
 }
 
 OperationSelect::OperationSelect(const std::vector<std::vector<std::string>>& args) {
