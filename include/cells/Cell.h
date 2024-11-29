@@ -4,10 +4,10 @@
 #include <utility>
 #include <iostream>
 
-#define INT32_TYPE 0x1
-#define BOOL_TYPE 0x2
-#define BYTES_TYPE 0x3
-#define STRING_TYPE 0x4
+#define INT32_TYPE 0x0
+#define BOOL_TYPE 0x1
+#define BYTES_TYPE 0x2
+#define STRING_TYPE 0x3
 
 typedef char cell_type;
 

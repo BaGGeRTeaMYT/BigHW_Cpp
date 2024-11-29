@@ -179,3 +179,7 @@ void Column::set_defualt_value( std::shared_ptr<bytes> value ) {
     }
     m_bytes_value = value;
 }
+
+cell_type Column::get_type( void ) const {
+    return m_type;
+}

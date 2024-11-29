@@ -36,6 +36,7 @@ public:
     [[nodiscard]] const std::vector<cell_pointer>& get_all_cells( void ) const;
     [[nodiscard]] size_t get_size( void ) const;
     [[nodiscard]] attributes& get_attributes( void ) const;
+    [[nodiscard]] cell_type get_type( void ) const;
 
 private:
 

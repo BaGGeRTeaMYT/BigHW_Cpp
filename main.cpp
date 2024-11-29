@@ -15,6 +15,9 @@ int main() {
                 "{} col3    : bool = true,"
                 "col4    : bool"
             ");"
+
+            "create table uzbeki_klass"
+            "(shaurma : string[2])"
             
             // "iNsErt ("
             //     "col1= 123,"

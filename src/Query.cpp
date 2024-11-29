@@ -990,6 +990,10 @@ void OperationCreate::execute( Database& db ) {
             }
             case STRING_TYPE:
             {
+                if (col_default_value[i].size() == 0) {
+                    col->set_defualt_value(std::string(""));
+                    break;
+                }
                 std::string str_val = col_default_value[i];
                 if (str_val[0] != '\"' || str_val.back() != '\"') {
                     throw std::runtime_error("String default value is incomplete\n");
@@ -1012,17 +1016,17 @@ void OperationCreate::execute( Database& db ) {
                         std::cout << "Incorrect symbol in bytes[X] literal: " << byte_val[i] << std::endl;
                         throw std::runtime_error("Incorrect symbol in bytes[X] literal.\n");
                     }
-                    value += (byte_val[i] - ((result == 1) ? '0' : 'a')) << 4;
+                    value += (byte_val[i] - ((result == 1) ? '0' : ('a' - 10)));
                     i--;
                     result = byte_checker(byte_val[i]);
                     if (result == 0) {
                         std::cout << "Incorrect symbol in bytes[X] literal: " << byte_val[i] << std::endl;
-                        throw std::runtime_error("Incorrect symbol in bytes[X] literal.\n");    
+                        throw std::runtime_error((std::string("Incorrect symbol") + std::to_string(byte_val[i]) + std::string("in bytes[X] literal.\n")).c_str());    
                     }
-                    value += (byte_val[i] - ((result == 1) ? '0' : 'a'));
+                    value += (byte_val[i] - ((result == 1) ? '0' : ('a' - 10))) << 4;
                     tmp_bytes->push_back(std::byte(value));
                 }
-                // if byte_val.size() is odd
+                
                 if (byte_val.size()%2) {
                     char result = byte_checker(byte_val[2]);
                     unsigned char value = 0;
@@ -1054,7 +1058,7 @@ OperationInsert::OperationInsert(const std::vector<std::vector<std::string>>& ar
         }
         if (operands.size() != 2) {
             std::cout << "Assignments in operation insert have to look like:" << std::endl
-                      << "<column_name> = <new_vakue>" << std::endl;
+                      << "<column_name> = <new_value>" << std::endl;
             throw std::runtime_error("Wrong operation insert syntax.");
         }
         col_name.push_back(operands.front());
@@ -1069,7 +1073,30 @@ OperationInsert::OperationInsert(const std::vector<std::vector<std::string>>& ar
 }
 
 void OperationInsert::execute( Database& db ) {
-    Table a("dummy_name");
+    auto table = db.get_table(table_name);
+    std::vector<column_pointer> cp;
+    std::map<std::string, int> int_assignments; 
+    std::map<std::string, bool> bool_assignments; 
+    std::map<std::string, std::string> string_assignments; 
+    std::map<std::string, bytes> bytes_assignments; 
+    // checking if the operations are valid.
+    for (unsigned int i = 0; i < col_name.size(); i++) {
+        auto cur_column = table->get_column(col_name[i]);
+        if (cur_column == nullptr) {
+            std::string error_msg = std::string("Column with name ") + col_name[i] + std::string(" not found\n");
+            throw std::runtime_error(error_msg.c_str());
+        }
+        ExpressionParser value(new_value[i]);
+        auto cur_token = value.tokenize(value.get_actions());
+        if (cur_token[0].type > TokenType::STRING) {
+            std::string error_msg = std::string("Given value has type ") + std::to_string(static_cast<int>(cur_token[0].type)) + std::string("\n");
+            throw std::runtime_error(error_msg.c_str());
+        }
+        if (static_cast<char>(cur_token[0].type) != cur_column->get_type()) {
+            throw std::runtime_error((std::string("Mismatched types of column and value in ") + std::to_string(i) + std::string(" row of insert\n")).c_str());
+        }
+    }
+
 }
 
 OperationSelect::OperationSelect(const std::vector<std::vector<std::string>>& args) {
