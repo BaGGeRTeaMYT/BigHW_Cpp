@@ -17,6 +17,7 @@ public:
     Cell(bool is_null, cell_type type);
     void set_null( bool state );
     [[nodiscard]] virtual const cell_type get_type( void ) const = 0;
+    bool null_checker( void ) const;
 
 protected:
 

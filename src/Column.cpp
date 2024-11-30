@@ -93,11 +93,15 @@ void Column::add_cell( cell_pointer cell ) {
                 break;
         }
     }
-    if (m_attributes.autoincrement) {
-        cell_pointer tmp_cell = std::shared_ptr<Cell>(new IntCell(std::dynamic_pointer_cast<IntCell>(m_cells[m_cells.size() - 1])->get_value().second + 1));
+    if (cell->null_checker() && m_attributes.autoincrement) {
+        cell_pointer tmp_cell;
+        if (m_cells.size()) {
+            tmp_cell = std::make_shared<IntCell>(std::dynamic_pointer_cast<IntCell>(m_cells[m_cells.size() - 1])->get_value().second + 1);
+        } else {
+            tmp_cell = std::make_shared<IntCell>(IntCell(1));
+        }
         m_cells.push_back(tmp_cell);
-    }
-    else {
+    } else {
         m_cells.push_back(cell);
     }
 }

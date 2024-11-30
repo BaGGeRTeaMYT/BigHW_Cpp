@@ -8,3 +8,7 @@ Cell::Cell(bool is_null, cell_type type):
 void Cell::set_null( bool state ) {
     m_is_null = state;
 }
+
+bool Cell::null_checker( void ) const {
+    return m_is_null;
+}

@@ -24,6 +24,7 @@ public:
     table_pointer get_table( const std::string& name );
     const table_container& get_all_tables( void ) const;
     void execute( std::string query );
+    static std::string hexation(std::byte number);
 
     friend class OperationCreate;
     

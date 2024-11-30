@@ -10,11 +10,11 @@ const std::string& ExpressionParser::get_actions() const {
 
 unsigned char dehexation(char sym) {
     if (sym != 'x') {
-        if ('a' <= sym <= 'f') {
+        if ('a' <= sym && sym <= 'f') {
             return (sym - 'a' + 10);
-        } else if ('A' <= sym <= 'F') {
+        } else if ('A' <= sym && sym <= 'F') {
             return (sym - 'A' + 10);
-        } else if ('0' <= sym <= '9') {
+        } else if ('0' <= sym && sym <= '9') {
             return (sym - '0');
         }
     }
@@ -31,6 +31,7 @@ bytes str_to_bytes(const std::string& str) {
         
         answer.push_back(static_cast<std::byte>(new_byte));
     }
+    std::reverse(answer.begin(), answer.end());
     return answer;
 }
 
@@ -522,7 +523,8 @@ std::vector<std::pair<std::vector<std::vector<std::string>>, char>> get_keywords
                             idx++;
                             skip_spaces(str, idx);
                             if (str[idx] == '\"') {
-                                tmp = read_until<'\"'>(str, idx);
+                                idx++;
+                                tmp = "\"" + read_until<'\"'>(str, idx) + "\"";
                                 idx++;
                             } else {
                                 tmp = get_word(str, idx);
@@ -918,7 +920,7 @@ char byte_checker(char sym) {
     if (isdigit(sym)) {
         return 1;
     }
-    if (('a' <= sym <= 'f') || ('A' <= sym <= 'F')) {
+    if (('a' <= sym && sym <= 'f') || ('A' <= sym && sym <= 'F')) {
         return 2;
     }
     return 0; 
@@ -1091,11 +1093,11 @@ OperationInsert::OperationInsert(const std::vector<std::vector<std::string>>& ar
         col_name.push_back(operands.front());
         new_value.push_back(operands.back());
     }
-    std::cout << "Have to insert" << std::endl;
-    for (size_t i = 0; i < col_name.size(); i++) {
-        std::cout << col_name[i] << " = " << new_value[i] << std::endl;
-    }
-    std::cout << std::endl << "In table: " << table_name << std::endl;
+    // std::cout << "Have to insert" << std::endl;
+    // for (size_t i = 0; i < col_name.size(); i++) {
+    //     std::cout << col_name[i] << " = " << new_value[i] << std::endl;
+    // }
+    // std::cout << std::endl << "In table: " << table_name << std::endl;
 
 }
 
@@ -1107,6 +1109,7 @@ void OperationInsert::execute( Database& db ) {
     std::map<column_pointer, std::string> string_assignments;
     std::map<column_pointer, bytes> bytes_assignments;
     // checking if the operations are valid.
+
     for (unsigned int i = 0; i < col_name.size(); i++) {
         auto cur_column = table->get_column(col_name[i]);
         if (cur_column == nullptr) {

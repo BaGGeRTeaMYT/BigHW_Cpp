@@ -56,3 +56,23 @@ void Database::execute( std::string query ) {
         }
     }
 }
+
+std::string Database::hexation(std::byte num) {
+    unsigned char number = static_cast<unsigned char>(num);
+    std::string answer = "";
+    char first_symbol = static_cast<char>(number >> 4);
+    if (first_symbol < 10) {
+        first_symbol += '0';
+    } else {
+        first_symbol = first_symbol - 10 + 'a';
+    }
+    char second_symbol = static_cast<char>(number & 0xf);
+    if (second_symbol < 10) {
+        second_symbol += '0';
+    } else {
+        second_symbol = first_symbol - 10 + 'a';
+    }
+    answer += first_symbol;
+    answer += second_symbol;
+    return answer;
+}
