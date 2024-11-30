@@ -1045,7 +1045,8 @@ void Query::compile() {
                 tmp = std::make_shared<OperationDelete>(OperationDelete(operations.first));
                 break;
             }
-            /*
+            /* coming soon
+            
             case JOIN {
                 
                 break;
