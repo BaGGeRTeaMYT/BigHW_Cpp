@@ -9,7 +9,7 @@ BytesCell::BytesCell( bytes value, size_t size ): Cell(false, BYTES_TYPE), m_val
     }
 }
 
-cell_type BytesCell::get_type( void ) const {
+const cell_type BytesCell::get_type( void ) const {
     return m_type;
 }
 

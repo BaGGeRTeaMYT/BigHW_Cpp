@@ -1,7 +1,7 @@
 #ifndef QueryHEADER
 #define QueryHEADER
 
-#include <Table.h>
+#include <Database.h>
 #include <iostream>
 #include <stack>
 #include <string>
@@ -12,6 +12,11 @@
 #include <sstream>
 #include <stdexcept>
 #include <regex>
+#include <cctype>
+#include <algorithm>
+#include <cstddef>
+
+class Database;
 
 enum OP_TYPE {
     CREATE_TABLE = 0,
@@ -23,7 +28,6 @@ enum OP_TYPE {
     CREATE_U_INDEX,
     CREATE_O_INDEX
 };
-
 
 // Token types
 enum class TokenType {
@@ -69,7 +73,7 @@ private:
 
 class Operation {
     public:
-    virtual Table execute() = 0;
+    virtual void execute( Database& db ) = 0;
 };
 
 class OperationCreate: public Operation {
@@ -80,7 +84,9 @@ class OperationCreate: public Operation {
     // [] are also abscent in actual query
     public:
     OperationCreate(const std::vector<std::vector<std::string>>& args);
-    Table execute() override;
+    void execute( Database& db ) override;
+
+    
 
     private:
     std::string table_name;
@@ -95,7 +101,7 @@ class OperationInsert: public Operation {
     // values are pairs like <name> = <value>
     public:
     OperationInsert(const std::vector<std::vector<std::string>>& args);
-    Table execute() override;
+    void execute( Database& db ) override;
 
     private:
     std::string table_name;
@@ -107,7 +113,7 @@ class OperationSelect: public Operation {
     // select <columns> from <table> where <condition>
     public:
     OperationSelect(const std::vector<std::vector<std::string>>& args);
-    Table execute() override;
+    void execute( Database& db ) override;
 
     private:
     std::vector<std::string> column_names;
@@ -119,7 +125,7 @@ class OperationUpdate : public Operation {
     // update <table> set <assignments> where <condition>
     public:
     OperationUpdate(const std::vector<std::vector<std::string>>& args);
-    Table execute() override;
+    void execute( Database& db ) override;
 
     private:
     std::string table_name;
@@ -133,7 +139,7 @@ class OperationDelete : public Operation {
     // delete <table> where <condition>
     public:
     OperationDelete(const std::vector<std::vector<std::string>>& args);
-    Table execute() override;
+    void execute( Database& db ) override;
 
     private:
     std::string table_name; // single table
@@ -144,7 +150,7 @@ class OperationJoin : public Operation {
     // <table1> join <table2> on <condition>
     public:
     OperationJoin(const std::vector<std::vector<std::string>>& args);
-    Table execute() override;
+    void execute( Database& db ) override;
 
     private:
     std::string first_table_name;
@@ -156,7 +162,7 @@ class OperationOrderedIndex : public Operation {
     // create ordered index on <table> by <columns>
     public:
     OperationOrderedIndex(const std::vector<std::vector<std::string>>& args);
-    Table execute() override;
+    void execute( Database& db ) override;
     
 };
 
@@ -164,14 +170,14 @@ class OperationUnorderedIndex : public Operation {
     // create unordered index on <table> by <columns>
     public:
     OperationUnorderedIndex(const std::string& args);
-    Table execute() override;
+    void execute( Database& db ) override;
     
 };
 
 class Comb: public Operation {
     public:
     Comb(const Operation& left, const Operation& right);
-    Table execute() override;
+    void execute( Database& db ) override;
 
     private:
     std::shared_ptr<Operation> left;
@@ -182,6 +188,7 @@ class Query {
     public:
     Query(const std::string& query);
     void compile();
+    const std::vector<std::shared_ptr<Operation>>& get_ops( void ) const;
 
     private:
     std::vector<std::shared_ptr<Operation>> ops;

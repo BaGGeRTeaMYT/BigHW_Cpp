@@ -24,10 +24,35 @@ std::string Database::get_name( void ) const {
     return m_name;
 }
 
-table_pointer Database::get_table( std::string name ) const {
-    return m_tables.at(name);
+table_pointer Database::get_table( const std::string& name ) {
+    return m_tables[name];
 }
 
 table_container::const_iterator Database::find_table( const std::string& name) const {
     return m_tables.find(name);
+}
+
+void Database::execute( std::string query ) {
+    Query q(query);
+    auto ops = q.get_ops();
+    for (auto i: ops) {
+        if (std::dynamic_pointer_cast<OperationCreate>(i) != nullptr) {
+            std::shared_ptr<OperationCreate> tmp = std::dynamic_pointer_cast<OperationCreate>(i);
+            tmp->execute(*this);
+        } else if (std::dynamic_pointer_cast<OperationInsert>(i) != nullptr){
+            std::shared_ptr<OperationInsert> tmp = std::dynamic_pointer_cast<OperationInsert>(i);
+            tmp->execute(*this);
+        } else if (std::dynamic_pointer_cast<OperationDelete>(i) != nullptr){
+            std::shared_ptr<OperationDelete> tmp = std::dynamic_pointer_cast<OperationDelete>(i);
+            tmp->execute(*this);
+        } else if (std::dynamic_pointer_cast<OperationSelect>(i) != nullptr){
+            std::shared_ptr<OperationSelect> tmp = std::dynamic_pointer_cast<OperationSelect>(i);
+            tmp->execute(*this);
+        } else if (std::dynamic_pointer_cast<OperationJoin>(i) != nullptr){
+            std::shared_ptr<OperationJoin> tmp = std::dynamic_pointer_cast<OperationJoin>(i);
+            tmp->execute(*this);
+        } else {
+            /* nothing here yet */
+        }
+    }
 }

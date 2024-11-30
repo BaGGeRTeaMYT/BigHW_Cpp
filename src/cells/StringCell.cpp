@@ -9,7 +9,7 @@ StringCell::StringCell( std::string value, size_t size ): Cell(false, STRING_TYP
     }
 }
 
-cell_type StringCell::get_type( void ) const {
+const cell_type StringCell::get_type( void ) const {
     return m_type;
 }
 

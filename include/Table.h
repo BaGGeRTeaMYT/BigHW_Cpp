@@ -19,8 +19,8 @@ public:
     void add_column( column_pointer column );
     void remove_column( const column_name& name );
 
-    [[nodiscard, noexcept]] table_name get_name( void ) const;
-    [[nodiscard]] column_pointer get_column( const column_name& column_name ) const ;
+    [[nodiscard]] table_name get_name( void ) const;
+    [[nodiscard]] column_pointer get_column( const column_name& column_name );
     [[nodiscard]] column_container::const_iterator find_column( const column_name& name ) const;
     [[nodiscard]] const column_container& get_all_columns( void ) const;
 
