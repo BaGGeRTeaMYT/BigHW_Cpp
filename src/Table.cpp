@@ -20,8 +20,8 @@ void Table::remove_column( const column_name& name ) {
     m_columns.erase(m_columns.find(name));
 }
 
-column_pointer Table::get_column( const column_name& name ) const {
-    return m_columns.at(name);
+column_pointer Table::get_column( const column_name& name ) {
+    return m_columns[name];
 }
 
 const column_container& Table::get_all_columns( void ) const {

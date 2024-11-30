@@ -146,31 +146,31 @@ size_t Column::get_size( void ) const {
     return m_cells.size();
 }
 
-void Column::set_defualt_value( int value ) {
+void Column::set_default_value( int value ) {
     if (m_type != INT32_TYPE) {
         throw std::runtime_error("Trying to set default int value to non-int column \n");
     }
     m_int_value = value;
 }
 
-void Column::set_defualt_value( bool value ) {
+void Column::set_default_value( bool value ) {
     if (m_type != BOOL_TYPE) {
         throw std::runtime_error("Trying to set default bool value to non-bool column \n");
     }
     m_bool_value = value;
 }
 
-void Column::set_defualt_value( const std::string& value ) {
+void Column::set_default_value( const std::string& value ) {
     if (m_type != STRING_TYPE) {
         throw std::runtime_error("Trying to set default string value to non-string column \n");
     }
-    if (value.size() != m_length) {
+    if (value.size() > m_length) {
         throw std::runtime_error("Trying to set default string value to invalid length string\n");
     }
     m_string_value = value;
 }
 
-void Column::set_defualt_value( std::shared_ptr<bytes> value ) {
+void Column::set_default_value( std::shared_ptr<bytes> value ) {
     if (m_type != BYTES_TYPE) {
         throw std::runtime_error("Trying to set default bytes value to non-bytes column \n");
     }
@@ -182,4 +182,8 @@ void Column::set_defualt_value( std::shared_ptr<bytes> value ) {
 
 cell_type Column::get_type( void ) const {
     return m_type;
+}
+
+int Column::get_length( void ) const {
+    return m_length;
 }

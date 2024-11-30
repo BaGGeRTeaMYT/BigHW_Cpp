@@ -23,10 +23,10 @@ public:
     Column( column_name name, cell_type type, int length = -1, 
         attribute unique = 0, attribute autoincrement = 0, attribute key = 0 );
 
-    void set_defualt_value( int value );
-    void set_defualt_value( bool value );
-    void set_defualt_value( const std::string& value );
-    void set_defualt_value( std::shared_ptr<bytes> value );
+    void set_default_value( int value );
+    void set_default_value( bool value );
+    void set_default_value( const std::string& value );
+    void set_default_value( std::shared_ptr<bytes> value );
 
     void add_cell( cell_pointer cell = nullptr );
     void remove_cell( int position );
@@ -37,6 +37,7 @@ public:
     [[nodiscard]] size_t get_size( void ) const;
     [[nodiscard]] attributes& get_attributes( void ) const;
     [[nodiscard]] cell_type get_type( void ) const;
+    [[nodiscard]] int get_length( void ) const;
 
 private:
 

@@ -29,7 +29,6 @@ enum OP_TYPE {
     CREATE_O_INDEX
 };
 
-
 // Token types
 enum class TokenType {
     INT32,

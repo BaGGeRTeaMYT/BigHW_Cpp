@@ -8,6 +8,32 @@ const std::string& ExpressionParser::get_actions() const {
     return m_actions;
 }
 
+unsigned char dehexation(char sym) {
+    if (sym != 'x') {
+        if ('a' <= sym <= 'f') {
+            return (sym - 'a' + 10);
+        } else if ('A' <= sym <= 'F') {
+            return (sym - 'A' + 10);
+        } else if ('0' <= sym <= '9') {
+            return (sym - '0');
+        }
+    }
+    return 0;
+}
+
+bytes str_to_bytes(const std::string& str) {
+    bytes answer;
+    for (unsigned int i = str.size() - 2; i >= 2; i -= 2) {
+        std::string substring = str.substr(i, 2);
+        unsigned char new_byte = dehexation(substring[0]);
+        new_byte <<= 4;
+        new_byte += dehexation(substring[1]);
+        
+        answer.push_back(static_cast<std::byte>(new_byte));
+    }
+    return answer;
+}
+
 std::vector<Token> ExpressionParser::tokenize(const std::string& expression) {
     std::vector<Token> tokens;
     // regulat expressions are great thing!
@@ -340,7 +366,7 @@ std::vector<std::pair<std::vector<std::vector<std::string>>, char>> get_keywords
                 } else {
                     std::cout << "Query creation error." << std::endl
                               << "Unable to recognize operation " << tmp + " " + second_word << std::endl;
-                    throw std::runtime_error("Query compilation error.");
+                    throw std::runtime_error("Query compilation error. Unknown operation.");
                 }
                 skip_spaces(str, idx);
             } else {
@@ -968,20 +994,20 @@ void OperationCreate::execute( Database& db ) {
                 if (tmp_digit_cnt != def_val.size()) {
                     throw std::runtime_error("Trying to pass non-int default value to int column\n");
                 }
-                col->set_defualt_value(std::stoi(def_val));
+                col->set_default_value(std::stoi(def_val));
                 break;
             }
             case BOOL_TYPE:
             {
                 std::string bool_val = col_default_value[i];
                 if (bool_val == "true") {
-                    col->set_defualt_value(true);
+                    col->set_default_value(true);
                 }
                 else if (bool_val == "false") {
-                    col->set_defualt_value(false);
+                    col->set_default_value(false);
                 }
                 else if (bool_val.size() == 0) {
-                    col->set_defualt_value(false);
+                    col->set_default_value(false);
                 }
                 else {
                     throw std::runtime_error("Trying to pass non-bool default value to bool column\n");
@@ -991,14 +1017,14 @@ void OperationCreate::execute( Database& db ) {
             case STRING_TYPE:
             {
                 if (col_default_value[i].size() == 0) {
-                    col->set_defualt_value(std::string(""));
+                    col->set_default_value(std::string(""));
                     break;
                 }
                 std::string str_val = col_default_value[i];
                 if (str_val[0] != '\"' || str_val.back() != '\"') {
                     throw std::runtime_error("String default value is incomplete\n");
                 }
-                col->set_defualt_value(str_val.substr(1, str_val.size() - 2));
+                col->set_default_value(str_val.substr(1, str_val.size() - 2));
                 break;
             }
             case BYTES_TYPE:
@@ -1037,7 +1063,7 @@ void OperationCreate::execute( Database& db ) {
                     value += (byte_val[i] - ((result == 1) ? '0' : 'a'));
                     tmp_bytes->push_back(std::byte(value));
                 }
-                col->set_defualt_value(tmp_bytes);
+                col->set_default_value(tmp_bytes);
                 break;
             }
             default:
@@ -1046,6 +1072,7 @@ void OperationCreate::execute( Database& db ) {
                 break;
             }
         }
+        table->add_column(col);
     }
     db.add_table(table);
 }
@@ -1068,17 +1095,17 @@ OperationInsert::OperationInsert(const std::vector<std::vector<std::string>>& ar
     for (size_t i = 0; i < col_name.size(); i++) {
         std::cout << col_name[i] << " = " << new_value[i] << std::endl;
     }
-    std::cout << std::endl << "In table: " << table_name;
+    std::cout << std::endl << "In table: " << table_name << std::endl;
 
 }
 
 void OperationInsert::execute( Database& db ) {
     auto table = db.get_table(table_name);
     std::vector<column_pointer> cp;
-    std::map<std::string, int> int_assignments; 
-    std::map<std::string, bool> bool_assignments; 
-    std::map<std::string, std::string> string_assignments; 
-    std::map<std::string, bytes> bytes_assignments; 
+    std::map<column_pointer, int> int_assignments;
+    std::map<column_pointer, bool> bool_assignments;
+    std::map<column_pointer, std::string> string_assignments;
+    std::map<column_pointer, bytes> bytes_assignments;
     // checking if the operations are valid.
     for (unsigned int i = 0; i < col_name.size(); i++) {
         auto cur_column = table->get_column(col_name[i]);
@@ -1086,8 +1113,15 @@ void OperationInsert::execute( Database& db ) {
             std::string error_msg = std::string("Column with name ") + col_name[i] + std::string(" not found\n");
             throw std::runtime_error(error_msg.c_str());
         }
+        // If we will have join, columns should have table name before their name
+        // if (cur_column.find(".") == cur_column.size()) {
+        //     col_name[i] = table_name + "." + cur_column;
+        // }
         ExpressionParser value(new_value[i]);
         auto cur_token = value.tokenize(value.get_actions());
+        if (cur_token.size() > 1) {
+            throw std::runtime_error("Insert can only take type literal as assignment.\n");
+        }
         if (cur_token[0].type > TokenType::STRING) {
             std::string error_msg = std::string("Given value has type ") + std::to_string(static_cast<int>(cur_token[0].type)) + std::string("\n");
             throw std::runtime_error(error_msg.c_str());
@@ -1095,8 +1129,45 @@ void OperationInsert::execute( Database& db ) {
         if (static_cast<char>(cur_token[0].type) != cur_column->get_type()) {
             throw std::runtime_error((std::string("Mismatched types of column and value in ") + std::to_string(i) + std::string(" row of insert\n")).c_str());
         }
+        switch (cur_token[0].type) {
+            case TokenType::INT32: {
+                int_assignments[cur_column] = stoi(cur_token[0].value);
+                break;
+            }
+            case TokenType::BOOL: {
+                bool_assignments[cur_column] = (cur_token[0].value == "true");
+                break;
+            }
+            case TokenType::BYTES: {
+                bytes value = str_to_bytes(cur_token[0].value);
+                if (value.size() > cur_column->get_length()) {
+                    throw std::runtime_error("Bytes literal is bigger than available in asked column.\n");
+                }
+                bytes_assignments[cur_column] = value;
+                break;
+            }
+            case TokenType::STRING: {
+                std::string value = cur_token[0].value.substr(1, cur_token[0].value.size() - 2);
+                if (value.size() > cur_column->get_length()) {
+                    throw std::runtime_error("String literal is bigger than available in asked column.\n");
+                }
+                string_assignments[cur_column] = value;
+                break;
+            }
+        }
     }
-
+    for (const auto& [col, val] : int_assignments) {
+        col->add_cell(std::make_shared<IntCell>(val));
+    }
+    for (const auto& [col, val] : bool_assignments) {
+        col->add_cell(std::make_shared<BoolCell>(val));
+    }
+    for (const auto& [col, val] : bytes_assignments) {
+        col->add_cell(std::make_shared<BytesCell>(val, col->get_length()));
+    }
+    for (const auto& [col, val] : string_assignments) {
+        col->add_cell(std::make_shared<StringCell>(val, col->get_length()));
+    }
 }
 
 OperationSelect::OperationSelect(const std::vector<std::vector<std::string>>& args) {

@@ -12,9 +12,6 @@
 typedef std::shared_ptr<Table> table_pointer;
 typedef std::map<std::string, std::shared_ptr<Table>> table_container;
 
-typedef std::shared_ptr<Table> table_pointer;
-typedef std::map<std::string, std::shared_ptr<Table>> table_container;
-
 class Database {
 public:
 
@@ -24,7 +21,7 @@ public:
     void remove_table( std::string name );
     std::string get_name( void ) const;
     table_container::const_iterator find_table( const std::string& name ) const;
-    table_pointer get_table( std::string name ) const;
+    table_pointer get_table( const std::string& name );
     const table_container& get_all_tables( void ) const;
     void execute( std::string query );
 
