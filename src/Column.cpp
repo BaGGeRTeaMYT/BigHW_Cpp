@@ -194,17 +194,17 @@ int Column::get_length( void ) const {
 
 void Column::add_default_cell( void ) {
     switch (m_type) {
-        case TokenType::INT32_TYPE:
-            add_cell(IntCell(m_int_value));
+        case INT32_TYPE:
+            add_cell(std::make_shared<IntCell>(IntCell(m_int_value)));
             break;
-        case TokenType::BOOL_TYPE:
-            add_cell(BoolCell(m_bool_value));
+        case BOOL_TYPE:
+            add_cell(std::make_shared<BoolCell>(BoolCell(m_bool_value)));
             break;
-        case TokenType::BYTES_TYPE:
-            add_cell(BytesCell(m_bytes_value->get(), m_length));
+        case BYTES_TYPE:
+            add_cell(std::make_shared<BytesCell>(BytesCell(*m_bytes_value, m_length)));
             break;
-        case TokenType::STRING_TYPE:
-            add_cell(StringCell(m_string_value, m_length));
+        case STRING_TYPE:
+            add_cell(std::make_shared<StringCell>(StringCell(m_string_value, m_length)));
             break;
         default:
             throw std::runtime_error("Column type in table is invalid\n");
