@@ -31,6 +31,7 @@ int main() {
             ") tO table_name;"
 
             "iNsErt ("
+                "col1 =  1234,"
                 "col2 = 0x132,"
                 "col3=false,"
                 "col4    =        true"
