@@ -1171,6 +1171,12 @@ void OperationInsert::execute( Database& db ) {
     for (const auto& [col, val] : string_assignments) {
         col->add_cell(std::make_shared<StringCell>(val, col->get_length()));
     }
+
+    for (const auto& [name, col]: table->get_all_columns()) {
+        if (std::find(col_name.begin(), col_name.end(), name) == col_name.end()) {
+            col->add_default_cell();
+        }
+    }
 }
 
 OperationSelect::OperationSelect(const std::vector<std::vector<std::string>>& args) {

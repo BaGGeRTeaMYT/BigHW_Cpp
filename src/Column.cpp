@@ -191,3 +191,23 @@ cell_type Column::get_type( void ) const {
 int Column::get_length( void ) const {
     return m_length;
 }
+
+void Column::add_default_cell( void ) {
+    switch (m_type) {
+        case TokenType::INT32_TYPE:
+            add_cell(IntCell(m_int_value));
+            break;
+        case TokenType::BOOL_TYPE:
+            add_cell(BoolCell(m_bool_value));
+            break;
+        case TokenType::BYTES_TYPE:
+            add_cell(BytesCell(m_bytes_value->get(), m_length));
+            break;
+        case TokenType::STRING_TYPE:
+            add_cell(StringCell(m_string_value, m_length));
+            break;
+        default:
+            throw std::runtime_error("Column type in table is invalid\n");
+            break;
+    }
+}

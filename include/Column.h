@@ -29,6 +29,7 @@ public:
     void set_default_value( std::shared_ptr<bytes> value );
 
     void add_cell( cell_pointer cell = nullptr );
+    void add_default_cell( void );
     void remove_cell( int position );
 
     [[nodiscard]] column_name get_name( void ) const;
