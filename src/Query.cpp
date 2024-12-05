@@ -1229,10 +1229,28 @@ OperationSelect::OperationSelect(const std::vector<std::vector<std::string>>& ar
     }
     std::cout << std::endl;
     
-}   
+}
 
 void OperationSelect::execute(Database& db) {
-    Table a("dummy_name");
+    auto table = db.get_table(table_name);
+    auto required_rows_indices = table->apply_condition(m_condition);
+    std::vector<std::vector<cell_pointer>> result(required_rows_indices.size());
+    std::vector<column_pointer> required_columns;
+    for (const auto& name : column_names) {
+        required_columns.push_back(table->get_column(name));
+    }
+    for (unsigned int i = 0; i < required_rows_indices.size(); i++) {
+        for (unsigned int j = 0; j < required_columns.size(); j++) {
+            result[i][j] = required_columns[j]->get_cell(required_rows_indices[i]);
+        }
+    }
+
+    for (const auto& i : result) {
+        for (const auto& j : i) {
+            // std::cout << j << '\t'; TODO: operator<< for Cells
+        }
+        std::cout << std::endl;
+    }
 }
 
 OperationUpdate::OperationUpdate(const std::vector<std::vector<std::string>>& args) {
@@ -1266,7 +1284,7 @@ OperationUpdate::OperationUpdate(const std::vector<std::vector<std::string>>& ar
 }
 
 void OperationUpdate::execute( Database& db ) {
-    Table a("dummy_name");
+    auto table = db.get_table(table_name);
 }
 
 OperationDelete::OperationDelete(const std::vector<std::vector<std::string>>& args) {
