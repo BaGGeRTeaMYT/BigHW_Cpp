@@ -4,7 +4,7 @@ project(not_sql)
 set(CMAKE_CXX_STANDARD 20)
 
 file (GLOB_RECURSE SOURCES "src/*.cpp")
-add_library(not_sql SHARED ${SOURCES})
+add_library(not_sql STATIC ${SOURCES})
 
 # include_directories(include/)
 
