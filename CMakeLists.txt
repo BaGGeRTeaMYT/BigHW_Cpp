@@ -12,9 +12,10 @@ target_include_directories(not_sql PUBLIC include)
 
 add_executable(Main
             main.cpp
-            src/Query.cpp
-            src/Cell.cpp
-            src/Column.cpp
-            src/Table.cpp
-            src/Database.cpp)
-# target_link_libraries(Main PRIVATE not_sql)
+            # src/Query.cpp
+            # src/Cell.cpp
+            # src/Column.cpp
+            # src/Table.cpp
+            # src/Database.cpp
+            )
+target_link_libraries(Main PRIVATE not_sql)
