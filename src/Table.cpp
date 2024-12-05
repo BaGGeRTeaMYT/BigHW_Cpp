@@ -20,8 +20,8 @@ void Table::remove_column( const column_name& name ) {
     m_columns.erase(m_columns.find(name));
 }
 
-column_pointer Table::get_column( const column_name& name ) {
-    return m_columns[name];
+column_pointer Table::get_column( const column_name& name ) const {
+    return m_columns.at(name);
 }
 
 const column_container& Table::get_all_columns( void ) const {
@@ -34,13 +34,15 @@ column_container::const_iterator Table::find_column( const column_name& name ) c
 
 std::string hexation(bytes& vec) {
     std::string answer = "0x";
+    std::reverse(vec.begin(), vec.end());
     for (std::byte b : vec) {
         char GO_F_YOURSELF_WITH_STD_BYTE = static_cast<char>(b);
         char first_sym = GO_F_YOURSELF_WITH_STD_BYTE >> 4;
-        first_sym = first_sym > 9 ? (first_sym - 10 + 'a') : (first_sym - '0');
+        first_sym = first_sym > 9 ? (first_sym - 10 + 'a') : (first_sym + '0');
         char second_sym = GO_F_YOURSELF_WITH_STD_BYTE & 15;
-        second_sym = second_sym > 9 ? (second_sym - 10 + 'a') : (second_sym - '0');
-        answer += first_sym + second_sym;
+        second_sym = second_sym > 9 ? (second_sym - 10 + 'a') : (second_sym + '0');
+        answer += first_sym;
+        answer += second_sym;
     }
     return answer;
 }
@@ -145,6 +147,8 @@ Token evaluate_operation(const Token& left, const Token& right, const std::strin
     } else if (left.type == TokenType::BYTES) {
         std::string left_value = left.value;
         std::string right_value = right.value;
+        right_value.insert(2, std::max(static_cast<long>(left_value.size() - right_value.size()), static_cast<long>(0)), '0');
+        left_value.insert(2, std::max(static_cast<long>(right_value.size() - left_value.size()), static_cast<long>(0)), '0');
         bool bool_result_value;
         if (op == "=") {
             bool_result_value = (left_value == right_value);
@@ -168,82 +172,88 @@ Token evaluate_operation(const Token& left, const Token& right, const std::strin
     }
 }
 
-std::vector<size_t> Table::apply_condition(const std::vector<Token>& tokens) {
-    std::vector<size_t> result_indices;
-    size_t row_count = m_columns.begin()->second->get_length();
-
-    for (size_t i = 0; i < row_count; ++i) {
-        std::vector<Token> processed_tokens = tokens;
-
-        for (size_t j = 0; j < processed_tokens.size(); ++j) {
-            if (processed_tokens[j].type == TokenType::VARIABLE) { // unwrapping variables
-                const std::string& column_name = processed_tokens[j].value;
-                auto requested_column = get_column(column_name);
-                TokenType type = static_cast<TokenType>(requested_column->get_type());
-                if (type != TokenType::STRING && type != TokenType::BYTES) {
-                    // not unwrapping string and bytes because of possible operation SIZE
-                    if (type == TokenType::INT32) {
-                        processed_tokens[j].value = (std::dynamic_pointer_cast<IntCell>(requested_column->get_cell(i)))->get_value().second;
-                    }
-                    if (type == TokenType::BOOL) {
-                        processed_tokens[j].value = (std::dynamic_pointer_cast<BoolCell>(requested_column->get_cell(i)))->get_value().second;
-                    }
-                    processed_tokens[j].type = type;
+std::stack<Token> Table::calculate_expression( std::vector<Token> processed_tokens, int row_index ) const {
+    for (size_t j = 0; j < processed_tokens.size(); ++j) {
+        if (processed_tokens[j].type == TokenType::VARIABLE) { // unwrapping variables
+            const std::string& column_name = processed_tokens[j].value;
+            auto requested_column = get_column(column_name);
+            TokenType type = static_cast<TokenType>(requested_column->get_type());
+            if (type != TokenType::STRING && type != TokenType::BYTES) {
+                // not unwrapping string and bytes because of possible operation SIZE
+                if (type == TokenType::INT32) {
+                    processed_tokens[j].value = std::to_string((std::dynamic_pointer_cast<IntCell>(requested_column->get_cell(row_index)))->get_value().second);
                 }
-            } else if (processed_tokens[j].type == TokenType::SIZE) {
-                const std::string& column_name = processed_tokens[j - 1].value;
-                auto requested_column = get_column(column_name);
-                size_t size = requested_column->get_size();
-                processed_tokens[j - 1].value = std::to_string(size);
-                processed_tokens[j - 1].type = TokenType::INT32;
-                processed_tokens.erase(processed_tokens.begin() + j);
-                --j;
-            }
-        }
-
-        // unwrapping all other variables, all SIZE operations should be gone by now
-        for (size_t j = 0; j < processed_tokens.size(); ++j) {
-            if (processed_tokens[j].type == TokenType::VARIABLE) {
-                const std::string& column_name = processed_tokens[j].value;
-                auto requested_column = get_column(column_name);
-                TokenType type = static_cast<TokenType>(requested_column->get_type());
-                if (type == TokenType::STRING) {
-                    processed_tokens[j].value = (std::dynamic_pointer_cast<StringCell>(requested_column->get_cell(i)))->get_value().second;
-                }
-                if (type == TokenType::BYTES) {
-                    processed_tokens[j].value = hexation((std::dynamic_pointer_cast<BytesCell>(requested_column->get_cell(i)))->get_value().second);
+                if (type == TokenType::BOOL) {
+                    processed_tokens[j].value = (std::dynamic_pointer_cast<BoolCell>(requested_column->get_cell(row_index)))->get_value().second ? "true" : "false";
                 }
                 processed_tokens[j].type = type;
             }
+        } else if (processed_tokens[j].type == TokenType::SIZE) {
+            const std::string& column_name = processed_tokens[j - 1].value;
+            auto requested_column = get_column(column_name);
+            size_t size = requested_column->get_size();
+            processed_tokens[j - 1].value = std::to_string(size);
+            processed_tokens[j - 1].type = TokenType::INT32;
+            processed_tokens.erase(processed_tokens.begin() + j);
+            --j;
         }
+    }
 
-        std::stack<Token> stack;
-        for (const auto& token : processed_tokens) {
-            if (token.type == TokenType::OPERATOR) {
-                if (token.value == "!") {
-                    if (stack.size() < 1) {
-                        throw std::runtime_error("Operation \"!\" should take at least one argument, none given.");
-                    }
-                } else if (stack.size() < 2) {
-                    std::string error_msg = "Operation \"" + token.value + "\" should take at least two arguments, " + std::to_string(stack.size()) + " given.";
-                    throw std::runtime_error(error_msg.c_str());
-                    Token right = stack.top();
-                    stack.pop();
-                    Token left = stack.top();
-                    stack.pop();
-                    if (left.type != right.type) {
-                        throw std::runtime_error("Type mismatch in operation");
-                    }
-                    Token result = evaluate_operation(left, right, token.value);
-                    stack.push(result);
-                }
-            } else {
-                stack.push(token);
+    // unwrapping all other variables, all SIZE operations should be gone by now
+    for (size_t j = 0; j < processed_tokens.size(); ++j) {
+        if (processed_tokens[j].type == TokenType::VARIABLE) {
+            const std::string& column_name = processed_tokens[j].value;
+            auto requested_column = get_column(column_name);
+            TokenType type = static_cast<TokenType>(requested_column->get_type());
+            if (type == TokenType::STRING) {
+                processed_tokens[j].value = (std::dynamic_pointer_cast<StringCell>(requested_column->get_cell(row_index)))->get_value().second;
             }
+            if (type == TokenType::BYTES) {
+                processed_tokens[j].value = hexation((std::dynamic_pointer_cast<BytesCell>(requested_column->get_cell(row_index)))->get_value().second);
+            }
+            processed_tokens[j].type = type;
         }
+    }
+
+    std::stack<Token> stack;
+    for (const auto& token : processed_tokens) {
+        if (token.type == TokenType::OPERATOR) {
+            if (token.value == "!") {
+                if (stack.size() < 1) {
+                    throw std::runtime_error("Operation \"!\" should take at least one argument, none given.");
+                }
+            } else if (stack.size() < 2) {
+                std::string error_msg = "Operation \"" + token.value + "\" should take at least two arguments, " + std::to_string(stack.size()) + " given.";
+                throw std::runtime_error(error_msg.c_str());
+            } else {
+                Token right = stack.top();
+                stack.pop();
+                Token left = stack.top();
+                stack.pop();
+                if (left.type != right.type) {
+                    throw std::runtime_error("Type mismatch in operation");
+                }
+                Token result = evaluate_operation(left, right, token.value);
+                stack.push(result);
+            }
+        } else {
+            stack.push(token);
+        }
+    }
+
+    return stack;
+}
+
+std::vector<size_t> Table::apply_condition(const std::vector<Token>& tokens) const {
+    std::vector<size_t> result_indices;
+    int row_count = rows_count();
+
+    for (size_t i = 0; i < row_count; ++i) {
+
+        auto stack = calculate_expression(tokens, i);
 
         if (stack.size() != 1) {
-            throw std::runtime_error("Invalid expression");
+            throw std::runtime_error("Incorrect condition.\n");
         }
 
         Token result = stack.top();
@@ -258,3 +268,21 @@ std::vector<size_t> Table::apply_condition(const std::vector<Token>& tokens) {
     return result_indices;
 }
 
+row Table::get_row( int index ) const {
+    row to_ret;
+    for (const auto& [name, col]: m_columns) {
+        to_ret.push_back(col->get_cell(index));
+    }
+    return to_ret;
+}
+
+int Table::rows_count( void ) const {
+    auto key_and_val = m_columns.begin();
+    return key_and_val->second->get_all_cells().size();
+}
+
+void Table::remove_row( int index ) {
+    for (const auto& [name, col]: m_columns) {
+        col->remove_cell(index);
+    }
+}
