@@ -15,6 +15,8 @@
 #include <cctype>
 #include <algorithm>
 #include <cstddef>
+#include <set>
+#include <unordered_set>
 
 class Database;
 

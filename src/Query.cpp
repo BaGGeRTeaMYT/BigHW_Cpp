@@ -57,7 +57,7 @@ std::vector<int> calculate_indexes( table_pointer table, std::vector<Token> cond
 
 bytes str_to_bytes(const std::string& str) {
     bytes answer;
-    for (unsigned int i = str.size() - 2; i >= 2; i -= 2) {
+    for (int i = str.size() - 2; i >= 1; i -= 2) {
         std::string substring = str.substr(i, 2);
         unsigned char new_byte = dehexation(substring[0]);
         new_byte <<= 4;
@@ -65,7 +65,7 @@ bytes str_to_bytes(const std::string& str) {
         
         answer.push_back(static_cast<std::byte>(new_byte));
     }
-    std::reverse(answer.begin(), answer.end());
+    // std::reverse(answer.begin(), answer.end());
     return answer;
 }
 
@@ -614,8 +614,8 @@ std::vector<std::pair<std::vector<std::vector<std::string>>, char>> get_keywords
                             idx++;
                             continue_flag = true;
                         }
+                        skip_spaces(str, idx);
                     }
-                    skip_spaces(str, idx);
 
                     if (idx == str.size()) {
                         std::cout << "Incomplete operation update" << std::endl;
@@ -1066,10 +1066,14 @@ void OperationCreate::execute( Database& db ) {
             case BYTES_TYPE:
             {
                 std::string byte_val = col_default_value[i];
+                std::shared_ptr<bytes> tmp_bytes = std::make_shared<bytes>(bytes(0));
+                if (byte_val.size() == 0) {
+                    col->set_default_value(tmp_bytes);
+                    break;
+                }
                 if (byte_val[0] != '0' || byte_val[1] != 'x') {
                     throw std::runtime_error("Trying to pass non-hex default number to bytes column\n");
                 }
-                std::shared_ptr<bytes> tmp_bytes = std::make_shared<bytes>(bytes(0));
                 unsigned int i;
                 for (i = byte_val.size() - 1; i >= 2; i--) {
                     char result = byte_checker(byte_val[i]);
@@ -1214,40 +1218,57 @@ void OperationInsert::execute( Database& db ) {
 }
 
 OperationSelect::OperationSelect(const std::vector<std::vector<std::string>>& args) {
-    std::cout << "Columns to select:" << std::endl;
+    // std::cout << "Columns to select:" << std::endl;
     for (const auto& col_name : args[0]) {
         column_names.push_back(col_name);
-        std::cout << col_name << ' ';
+        // std::cout << col_name << ' ';
     }
     table_name = args[1][0];
-    std::cout << std::endl << std::endl << "From table: " << std::endl << table_name << std::endl;
-    std::cout << std::endl << "If condition met: " << std::endl;
+    // std::cout << std::endl << std::endl << "From table: " << std::endl << table_name << std::endl;
+    // std::cout << std::endl << "If condition met: " << std::endl;
     auto conditions = ExpressionParser(args[2][0]);
     m_condition = conditions.tokenize(conditions.get_actions());
-    for (const auto &single_token : m_condition) {
-        std::cout << "Expression " << single_token.value << " of type " << (int)single_token.type << std::endl;
-    }
-    std::cout << std::endl;
+    // for (const auto &single_token : m_condition) {
+    //     std::cout << "Expression " << single_token.value << " of type " << (int)single_token.type << std::endl;
+    // }
+    // std::cout << std::endl;
     
 }
 
 void OperationSelect::execute(Database& db) {
     auto table = db.get_table(table_name);
     auto required_rows_indices = table->apply_condition(m_condition);
-    std::vector<std::vector<cell_pointer>> result(required_rows_indices.size());
-    std::vector<column_pointer> required_columns;
+    std::set<column_pointer> set_of_required_columns;
+    
     for (const auto& name : column_names) {
-        required_columns.push_back(table->get_column(name));
+        if (name == "*") {
+            for (const auto& [k, v] : table->get_all_columns()) {
+                set_of_required_columns.insert(v);
+            }
+        } else {
+            set_of_required_columns.insert(table->get_column(name));
+        }
     }
+    std::vector<column_pointer> required_columns;
+    for (const auto& col_name : set_of_required_columns) {
+        required_columns.push_back(col_name);
+    }
+    std::vector<std::vector<cell_pointer>> result(required_rows_indices.size(), std::vector<cell_pointer>(required_columns.size()));
     for (unsigned int i = 0; i < required_rows_indices.size(); i++) {
         for (unsigned int j = 0; j < required_columns.size(); j++) {
             result[i][j] = required_columns[j]->get_cell(required_rows_indices[i]);
         }
     }
-
-    for (const auto& i : result) {
-        for (const auto& j : i) {
-            // std::cout << j << '\t'; TODO: operator<< for Cells
+    std::cout << "Select result:" << std::endl;
+    std::cout << "\t";
+    for (const auto& i : required_columns) { 
+        std::cout << i->get_name() << "\t";
+    }
+    std::cout << std::endl;
+    for (int i = 0; i < required_rows_indices.size(); i++) {
+        std::cout << required_rows_indices[i] << ":\t";
+        for (int j = 0; j < required_columns.size(); j++) {
+            std::cout << result[i][j] << '\t';
         }
         std::cout << std::endl;
     }
@@ -1269,22 +1290,61 @@ OperationUpdate::OperationUpdate(const std::vector<std::vector<std::string>>& ar
         }
     }
     
-    for (int i = 0; i < m_assignments.size(); i++) {
-        std::cout << "Assign to column " << m_cols_to_assign[i] << " expression: " << std::endl; 
-        for (int j = 0; j < m_assignments[i].size(); j++) {
-            std::cout << m_assignments[i][j].value << std::endl;
-        }
-        std::cout << std::endl;
-    }
-    std::cout << "If met condition:" << std::endl;
-    for (int i = 0; i < m_condition.size(); i++) {
-        std::cout << m_condition[i].value << " ";
-    }
-    std::cout << std::endl;
+    // for (int i = 0; i < m_assignments.size(); i++) {
+    //     std::cout << "Assign to column " << m_cols_to_assign[i] << " expression: " << std::endl; 
+    //     for (int j = 0; j < m_assignments[i].size(); j++) {
+    //         std::cout << m_assignments[i][j].value << std::endl;
+    //     }
+    //     std::cout << std::endl;
+    // }
+    // std::cout << "If met condition:" << std::endl;
+    // for (int i = 0; i < m_condition.size(); i++) {
+    //     std::cout << m_condition[i].value << " ";
+    // }
+    // std::cout << std::endl;
 }
 
 void OperationUpdate::execute( Database& db ) {
     auto table = db.get_table(table_name);
+    auto required_rows_indices = table->apply_condition(m_condition);
+    for (int i = 0; i < m_assignments.size(); i++) {
+        auto col = table->get_column(m_cols_to_assign[i]);
+        for (int index : required_rows_indices) {
+            auto cell = col->get_cell(index);
+            auto int_cell = std::dynamic_pointer_cast<IntCell>(cell);
+            auto bool_cell = std::dynamic_pointer_cast<BoolCell>(cell);
+            auto bytes_cell = std::dynamic_pointer_cast<BytesCell>(cell);
+            auto string_cell = std::dynamic_pointer_cast<StringCell>(cell);
+            auto assignment_stack = table->calculate_expression(m_assignments[i], index);
+            if (assignment_stack.size() != 1) {
+                throw std::runtime_error("Invalid assignment.\n");
+            }
+            Token assignment = assignment_stack.top();
+            if (int_cell != nullptr) {
+                if (assignment.type != TokenType::INT32) {
+                    throw std::runtime_error("Trying to assign not INT32 to INT32.\n");
+                }
+                int_cell->set_value( std::stoi(assignment.value) );
+            } else if (bool_cell != nullptr) {
+                if (assignment.type != TokenType::BOOL) {
+                    throw std::runtime_error("Trying to assign not BOOL to BOOL.\n");
+                }
+                bool_cell->set_value( assignment.value == "true" );
+            } else if (bytes_cell != nullptr) {
+                if (assignment.type != TokenType::BYTES) {
+                    throw std::runtime_error("Trying to assign not BYTES to BYTES.\n");
+                }
+                bytes_cell->set_value( str_to_bytes(assignment.value) );
+            } else if (string_cell != nullptr) {
+                if (assignment.type != TokenType::STRING) {
+                    throw std::runtime_error("Trying to assign not STRING to STRING.\n");
+                }
+                string_cell->set_value(assignment.value);
+            } else {
+                throw std::runtime_error("Invalid cell type\n");
+            }
+        }
+    }
 }
 
 OperationDelete::OperationDelete(const std::vector<std::vector<std::string>>& args) {
@@ -1298,16 +1358,21 @@ OperationDelete::OperationDelete(const std::vector<std::vector<std::string>>& ar
             m_condition = polish_expr.tokenize(polish_expr.get_actions());
         }
     }
-    std::cout << "Delete row from table: " << table_name << std::endl;
-    std::cout << "If met condition:" << std::endl;
-    for (int i = 0; i < m_condition.size(); i++) {
-        std::cout << m_condition[i].value << " ";
-    }
-    std::cout << std::endl;
+    // std::cout << "Delete row from table: " << table_name << std::endl;
+    // std::cout << "If met condition:" << std::endl;
+    // for (int i = 0; i < m_condition.size(); i++) {
+    //     std::cout << m_condition[i].value << " ";
+    // }
+    // std::cout << std::endl;
 }
 
 void OperationDelete::execute(Database& db) {
-    Table a("dummy_name");
+    auto table = db.get_table(table_name);
+    auto required_rows_indices = table->apply_condition(m_condition);
+    std::sort(required_rows_indices.begin(), required_rows_indices.end());
+    for (int i = required_rows_indices.size() - 1;  i >= 0; i--) {
+        table->remove_row(required_rows_indices[i]);
+    }
 }
 
 Query::Query(const std::string& str) {

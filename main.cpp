@@ -5,83 +5,47 @@ int main() {
     Database db("Uzbek");
     db.execute(std::string(
             
-            "create tABle table_name"
-                "("
-                "{key, autoincrement}"
-                "col1 : int32 = 31,"
-                "{unique}  "
-                "col2: bytes[2] = 0x1234,"
-                "{} col3    : bool = true,"
-                "col4    : bool"
-            ");"
+        "create tABle table_name"
+        "("
+            "{key, autoincrement}"
+            "col1 : int32 = 31,"
+            "{unique}  "
+            "col2: bytes[2] = 0x1234,"
+            "{} col3    : bool = true,"
+            "col4    : bool"
+        ");"
 
-            "create table uzbeki_klass"
-            "( shaurma : string[2]);"
-            
-            "iNsErt ("
-                "col1= 123,"
-                "col3=false,"
-                "col4    =        true"
-            ") tO table_name;"
+        "create table uzbeki_klass"
+        "( shaurma : string[2]);"
+        
+        "iNsErt ("
+            "col1= 123,"
+            "col3=false,"
+            "col4    =        true"
+        ") tO table_name;"
 
-            "iNsErt ("
-                "col2 = 0x12,"
-                "col3=false,"
-                "col4    =        true"
-            ") tO table_name;"
+        "iNsErt ("
+            "col2 = 0x12,"
+            "col3=false,"
+            "col4    =        true"
+        ") tO table_name;"
 
-            "iNsErt ("
-                "col1 =  1234,"
-                "col2 = 0x132,"
-                "col3=false,"
-                "col4    =        true"
-            ") tO table_name;"
-
-            "INSERT (shaurma = \"ab\") to uzbeki_klass;"
-            
-            // "seLeCt col1,col2 "
-            // "fRom table_name "
-            // "whERe col1 < 23 && (true || false);"
-            
-            // "UPDATe table_name "
-            // "sEt col1 =321 + col1*2,"
-            // "col2 = 0xb0ba ,   "
-            // "col3 = \"uzbeki power\" + col3 "
-            // "WHeRE col2 < 0x0500;"
-            
-            // "DELETE table_name "
-            // "where col = 321 && col2 = 0x0456;"
-        ));
-
-    for (const auto &[k, v] : db.get_all_tables()) {
-        std::cout << k << std::endl;
-        for (const auto& [col_k, col_v] : v->get_all_columns()) {
-            std::cout << " " << col_k << ": ";
-            for (int i = 0; i < col_v->get_size(); i++) {
-                std::shared_ptr<IntCell> int_output = std::dynamic_pointer_cast<IntCell>(col_v->get_cell(i));
-                if (int_output) {
-                    std::cout << int_output->get_value().second << ", ";
-                }
-                std::shared_ptr<BoolCell> bool_output = std::dynamic_pointer_cast<BoolCell>(col_v->get_cell(i));
-                if (bool_output) {
-                    std::cout << bool_output->get_value().second << ", ";
-                }
-                std::shared_ptr<StringCell> string_output = std::dynamic_pointer_cast<StringCell>(col_v->get_cell(i));
-                if (string_output) {
-                    std::cout << string_output->get_value().second << ", ";
-                }
-                std::shared_ptr<BytesCell> bytes_output = std::dynamic_pointer_cast<BytesCell>(col_v->get_cell(i));
-                if (bytes_output) {
-                    std::cout << "0x";
-                    for (auto j : bytes_output->get_value().second) {
-                        std::cout << Database::hexation(j);
-                    }
-                    std::cout << ", ";
-                }
-            }
-        }
-        std::cout << std::endl;
-    }
+        "iNsErt ("
+            "col1 =  1234,"
+            "col2 = 0x132,"
+            "col3=false,"
+            "col4    =        true"
+        ") tO table_name;"
+        "INSERT (shaurma = \"ab\") to uzbeki_klass;"
+        
+        "select * from table_name where true;"
+        "delete table_name where col1 > 1000;"
+        "select * from table_name where true;"
+        "update table_name "
+        "set col1 = col1*2 + 2 "
+        "where true;"
+        "select * from table_name where true;"
+    ));
 
     return 0;
 }

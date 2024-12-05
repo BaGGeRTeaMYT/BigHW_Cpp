@@ -5,7 +5,7 @@
 #include <string>
 #include <memory>
 #include <iostream>
-#include <Cells.h>
+#include <Cell.h>
 #include <set>
 
 typedef std::string column_name;
