@@ -13,11 +13,7 @@ target_include_directories(not_sql PUBLIC include)
 add_executable(Main
             main.cpp
             src/Query.cpp
-            src/cells/Cell.cpp
-            src/cells/IntCell.cpp
-            src/cells/BoolCell.cpp
-            src/cells/BytesCell.cpp
-            src/cells/StringCell.cpp
+            src/Cell.cpp
             src/Column.cpp
             src/Table.cpp
             src/Database.cpp)
