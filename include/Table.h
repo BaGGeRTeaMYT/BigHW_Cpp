@@ -9,6 +9,7 @@
 #include <stack>
 
 typedef std::string table_name;
+typedef std::vector<std::shared_ptr<Cell>> row;
 typedef std::shared_ptr<Column> column_pointer;
 typedef std::map<const column_name, column_pointer> column_container;
 
@@ -36,6 +37,9 @@ public:
 
     void add_column( column_pointer column );
     void remove_column( const column_name& name );
+
+    [[nodiscard]] row get_row( int index ) const;
+    [[nodiscard]] int rows_count( void ) const;
 
     [[nodiscard]] table_name get_name( void ) const;
     [[nodiscard]] column_pointer get_column( const column_name& column_name );

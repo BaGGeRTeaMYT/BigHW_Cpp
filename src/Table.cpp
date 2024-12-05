@@ -258,3 +258,15 @@ std::vector<size_t> Table::apply_condition(const std::vector<Token>& tokens) {
     return result_indices;
 }
 
+row Table::get_row( int index ) const {
+    row to_ret;
+    for (const auto& [name, col]: m_columns) {
+        to_ret.push_back(col->get_cell(index));
+    }
+    return to_ret;
+}
+
+int Table::rows_count( void ) const {
+    auto key_and_val = m_columns.begin();
+    return key_and_val->second->get_all_cells().size();
+}
