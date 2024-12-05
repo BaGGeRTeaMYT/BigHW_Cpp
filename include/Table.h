@@ -12,6 +12,7 @@
 #define hexation some_other_function_please_stop_linker_errors
 
 typedef std::string table_name;
+typedef std::vector<std::shared_ptr<Cell>> row;
 typedef std::shared_ptr<Column> column_pointer;
 typedef std::map<const column_name, column_pointer> column_container;
 typedef std::vector<std::shared_ptr<Cell>> row;

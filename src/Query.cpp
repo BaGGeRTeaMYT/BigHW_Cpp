@@ -21,6 +21,40 @@ unsigned char dehexation(char sym) {
     return 0;
 }
 
+std::vector<int> calculate_indexes( table_pointer table, std::vector<Token> conditions ) {
+    std::vector<int> answer(0);
+    std::map<column_name, int> cols_to_indexes;
+    int counter = 0;
+    for (const auto& [name, col]: table->get_all_columns()) {
+        cols_to_indexes[name] = counter;
+        ++counter;
+    }
+    for (int i = 0; i < table->rows_count(); ++i) {
+        row current_row = table->get_row(i);
+        std::stack<cell_pointer> to_check;
+        for (const auto& token: conditions) {
+            switch (token.type) {
+                case TokenType::VARIABLE:
+                    break;
+                case TokenType::OPERATOR:
+                    break;
+                case TokenType::INT32:
+                    break;
+                case TokenType::BOOL:
+                    break;
+                case TokenType::BYTES:
+                    break;
+                case TokenType::STRING:
+                    break;
+                default:
+                throw std::runtime_error("Trying to use invalid token type\n");
+                    break;
+            }
+        } 
+    } 
+    return answer; 
+}
+
 bytes str_to_bytes(const std::string& str) {
     bytes answer;
     for (int i = str.size() - 2; i >= 1; i -= 2) {
