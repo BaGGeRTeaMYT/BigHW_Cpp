@@ -1231,7 +1231,7 @@ OperationSelect::OperationSelect(const std::vector<std::vector<std::string>>& ar
     // for (const auto &single_token : m_condition) {
     //     std::cout << "Expression " << single_token.value << " of type " << (int)single_token.type << std::endl;
     // }
-    std::cout << std::endl;
+    // std::cout << std::endl;
     
 }
 
@@ -1290,18 +1290,18 @@ OperationUpdate::OperationUpdate(const std::vector<std::vector<std::string>>& ar
         }
     }
     
-    for (int i = 0; i < m_assignments.size(); i++) {
-        std::cout << "Assign to column " << m_cols_to_assign[i] << " expression: " << std::endl; 
-        for (int j = 0; j < m_assignments[i].size(); j++) {
-            std::cout << m_assignments[i][j].value << std::endl;
-        }
-        std::cout << std::endl;
-    }
-    std::cout << "If met condition:" << std::endl;
-    for (int i = 0; i < m_condition.size(); i++) {
-        std::cout << m_condition[i].value << " ";
-    }
-    std::cout << std::endl;
+    // for (int i = 0; i < m_assignments.size(); i++) {
+    //     std::cout << "Assign to column " << m_cols_to_assign[i] << " expression: " << std::endl; 
+    //     for (int j = 0; j < m_assignments[i].size(); j++) {
+    //         std::cout << m_assignments[i][j].value << std::endl;
+    //     }
+    //     std::cout << std::endl;
+    // }
+    // std::cout << "If met condition:" << std::endl;
+    // for (int i = 0; i < m_condition.size(); i++) {
+    //     std::cout << m_condition[i].value << " ";
+    // }
+    // std::cout << std::endl;
 }
 
 void OperationUpdate::execute( Database& db ) {
@@ -1358,12 +1358,12 @@ OperationDelete::OperationDelete(const std::vector<std::vector<std::string>>& ar
             m_condition = polish_expr.tokenize(polish_expr.get_actions());
         }
     }
-    std::cout << "Delete row from table: " << table_name << std::endl;
-    std::cout << "If met condition:" << std::endl;
-    for (int i = 0; i < m_condition.size(); i++) {
-        std::cout << m_condition[i].value << " ";
-    }
-    std::cout << std::endl;
+    // std::cout << "Delete row from table: " << table_name << std::endl;
+    // std::cout << "If met condition:" << std::endl;
+    // for (int i = 0; i < m_condition.size(); i++) {
+    //     std::cout << m_condition[i].value << " ";
+    // }
+    // std::cout << std::endl;
 }
 
 void OperationDelete::execute(Database& db) {
