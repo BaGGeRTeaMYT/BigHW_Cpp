@@ -1199,8 +1199,8 @@ OperationSelect::OperationSelect(const std::vector<std::vector<std::string>>& ar
 
 void OperationSelect::execute(Database& db) {
     auto table = db.get_table(table_name);
-    auto required_rows_indices = calculate_indexes(table, m_condition);
-    std::vector<std::vector<Cell>> result(required_rows_indices.size());
+    auto required_rows_indices = table->apply_condition(m_condition);
+    std::vector<std::vector<cell_pointer>> result(required_rows_indices.size());
     std::vector<column_pointer> required_columns;
     for (const auto& name : column_names) {
         required_columns.push_back(table->get_column(name));
@@ -1213,7 +1213,7 @@ void OperationSelect::execute(Database& db) {
 
     for (const auto& i : result) {
         for (const auto& j : i) {
-            std::cout << j << '\t';
+            // std::cout << j << '\t'; TODO: operator<< for Cells
         }
         std::cout << std::endl;
     }

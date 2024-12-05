@@ -29,26 +29,6 @@ enum OP_TYPE {
     CREATE_O_INDEX
 };
 
-// Token types
-enum class TokenType {
-    INT32,
-    BOOL,
-    BYTES,
-    STRING,
-    OPERATOR,
-    VARIABLE,
-    LPAREN,
-    RPAREN,
-    SIZE,
-    INVALID
-};
-
-// Token structure
-struct Token {
-    TokenType type;
-    std::string value;
-};
-
 class ExpressionParser {
 public:
     ExpressionParser(const std::string& expression);
