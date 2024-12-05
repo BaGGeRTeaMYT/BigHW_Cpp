@@ -32,10 +32,14 @@ column_container::const_iterator Table::find_column( const column_name& name ) c
     return m_columns.find(name);
 }
 
-std::string hexation(bytes& vec) {
+std::string hexation(const bytes& vec) {
     std::string answer = "0x";
-    std::reverse(vec.begin(), vec.end());
-    for (std::byte b : vec) {
+    std::vector<char> char_vec(vec.size());
+    for (int i = 0; i < vec.size(); ++i) {
+        char_vec[i] = static_cast<char>(vec[vec.size() - i - 1]);
+    } 
+    // std::reverse(vec.begin(), vec.end());
+    for (char b : char_vec) {
         char GO_F_YOURSELF_WITH_STD_BYTE = static_cast<char>(b);
         char first_sym = GO_F_YOURSELF_WITH_STD_BYTE >> 4;
         first_sym = first_sym > 9 ? (first_sym - 10 + 'a') : (first_sym + '0');
