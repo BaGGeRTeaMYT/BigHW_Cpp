@@ -128,43 +128,43 @@ class OperationDelete : public Operation {
     std::vector<Token> m_condition;
 };
 
-class OperationJoin : public Operation {
-    // <table1> join <table2> on <condition>
-    public:
-    OperationJoin(const std::vector<std::vector<std::string>>& args);
-    void execute( Database& db ) override;
+// class OperationJoin : public Operation {
+//     // <table1> join <table2> on <condition>
+//     public:
+//     OperationJoin(const std::vector<std::vector<std::string>>& args);
+//     void execute( Database& db ) override;
 
-    private:
-    std::string first_table_name;
-    std::string second_table_name;
-    // Condition
-};
+//     private:
+//     std::string first_table_name;
+//     std::string second_table_name;
+//     // Condition
+// };
 
-class OperationOrderedIndex : public Operation {
-    // create ordered index on <table> by <columns>
-    public:
-    OperationOrderedIndex(const std::vector<std::vector<std::string>>& args);
-    void execute( Database& db ) override;
+// class OperationOrderedIndex : public Operation {
+//     // create ordered index on <table> by <columns>
+//     public:
+//     OperationOrderedIndex(const std::vector<std::vector<std::string>>& args);
+//     void execute( Database& db ) override;
     
-};
+// };
 
-class OperationUnorderedIndex : public Operation {
-    // create unordered index on <table> by <columns>
-    public:
-    OperationUnorderedIndex(const std::string& args);
-    void execute( Database& db ) override;
+// class OperationUnorderedIndex : public Operation {
+//     // create unordered index on <table> by <columns>
+//     public:
+//     OperationUnorderedIndex(const std::string& args);
+//     void execute( Database& db ) override;
     
-};
+// };
 
-class Comb: public Operation {
-    public:
-    Comb(const Operation& left, const Operation& right);
-    void execute( Database& db ) override;
+// class Comb: public Operation {
+//     public:
+//     Comb(const Operation& left, const Operation& right);
+//     void execute( Database& db ) override;
 
-    private:
-    std::shared_ptr<Operation> left;
-    std::shared_ptr<Operation> right;
-};
+//     private:
+//     std::shared_ptr<Operation> left;
+//     std::shared_ptr<Operation> right;
+// };
 
 class Query {
     public:
